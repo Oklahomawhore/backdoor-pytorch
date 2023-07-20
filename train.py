@@ -28,6 +28,7 @@ import torch.nn as nn
 import torchvision.utils
 import yaml
 from torch.nn.parallel import DistributedDataParallel as NativeDDP
+from torch.utils.tensorboard import SummaryWriter
 
 from timm import utils
 from timm.data import create_dataset, create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
@@ -372,11 +373,14 @@ def _parse_args():
     args_text = yaml.safe_dump(args.__dict__, default_flow_style=False)
     return args, args_text
 
+writer:SummaryWriter = None
 
 def main():
+    global writer
     utils.setup_default_logging()
     args, args_text = _parse_args()
 
+    writer = SummaryWriter(os.path.join('runs', args.dataset if args.dataset else args.data, args.model, datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
     if torch.cuda.is_available():
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.benchmark = True
@@ -796,6 +800,7 @@ def main():
                 validate_loss_fn,
                 args,
                 amp_autocast=amp_autocast,
+                epoch=epoch
             )
 
             if model_ema is not None and not args.model_ema_force_cpu:
@@ -964,6 +969,7 @@ def train_one_epoch(
                 update_sample_count *= args.world_size
 
             if utils.is_primary(args):
+                writer.add_scalar('Train/loss', losses_m.val, update_idx  + 1)
                 _logger.info(
                     f'Train: {epoch} [{update_idx:>4d}/{updates_per_epoch} '
                     f'({100. * update_idx / (updates_per_epoch - 1):>3.0f}%)]  '
@@ -1006,7 +1012,8 @@ def validate(
         args,
         device=torch.device('cuda'),
         amp_autocast=suppress,
-        log_suffix=''
+        log_suffix='',
+        epoch=None,
 ):
     batch_time_m = utils.AverageMeter()
     losses_m = utils.AverageMeter()
@@ -1065,11 +1072,16 @@ def validate(
                     f'Acc@1: {top1_m.val:>7.3f} ({top1_m.avg:>7.3f})  '
                     f'Acc@5: {top5_m.val:>7.3f} ({top5_m.avg:>7.3f})'
                 )
-
+                
+    if utils.is_primary(args):
+        writer.add_scalar('Test/Average loss', losses_m.val, epoch)
+        writer.add_scalar('Test/Accuracy', top1_m.val, epoch)
+        writer.flush()
     metrics = OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg), ('top5', top5_m.avg)])
 
     return metrics
 
 
 if __name__ == '__main__':
+    # search configs and run all combinations
     main()

@@ -1,0 +1,21 @@
+data: ../data/CIFAR100_poison
+experiment: cifar100_resnet50_poison
+warmup_epochs: 0
+lr: 0.1
+sched: multistep
+decay_milestones:
+- 60
+- 120
+- 160
+decay_rate: 0.2
+opt: sgd
+momentum: 0.9
+batch_size: 128
+model: resnet50
+weight_decay: 5.0e-04
+epochs: 200
+val_split: clean
+input_size:
+- 3
+- 32
+- 32
