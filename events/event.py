@@ -18,7 +18,7 @@ class Event:
 
     
     def attach(self, listener: Listener):
-        if issubclass(listener, Listener):
+        if isinstance(listener, Listener):
             self._listeners.append(listener)
 
     

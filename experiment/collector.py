@@ -18,12 +18,10 @@ class ExperimentCollector(Listener):
             # log histogram
             model = data[settings.TRAIN_ONE_EPOCH_COMPLETE_PARAM_MODEL]
             epoch = data[settings.TRAIN_ONE_EPOCH_COMPLETE_PARAM_EPOCH]
-            if isinstance(torch.nn.Moduele):
-                for name, param in model.named_parameters():
-                    layer, attr = os.path.splitext(name)
-                    attr = attr[1:]
-                    self.writer.add_histogram("{}/{}".format(layer, attr), param, epoch)
-
+            for name, param in model.named_parameters():
+                layer, attr = os.path.splitext(name)
+                attr = attr[1:]
+                self.writer.add_histogram("{}/{}".format(layer, attr), param, epoch)
         
         elif event == settings.VALIDATE_ONE_EPOCH_COMPLETE:
             # log metrics

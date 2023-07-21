@@ -1,7 +1,5 @@
 dataset: torch/cifar100
 data_dir: ../data
-experiment: cifar100_resnet50_clean
-warmup_epochs: 0
 lr: 0.1
 sched: multistep
 decay_milestones:

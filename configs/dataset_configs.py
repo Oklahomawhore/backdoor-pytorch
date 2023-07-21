@@ -1,7 +1,7 @@
 
 import argparse
 from pathlib import Path
-import global_settings as settings
+import configs.global_settings as settings
 
 
 def _get_dataset_defaults(args,):

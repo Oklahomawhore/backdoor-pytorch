@@ -40,7 +40,7 @@ from timm.scheduler import create_scheduler_v2, scheduler_kwargs
 from timm.utils import ApexScaler, NativeScaler
 
 from configs.dataset_configs import *
-import configs.global_settings as settings
+from configs import settings
 from events.event import Event
 from experiment.collector import ExperimentCollector
 
@@ -393,7 +393,7 @@ def main():
     utils.setup_default_logging()
     args, args_text = _parse_args()
 
-    writer = SummaryWriter(os.path.join('runs', args.data.split('/')[-1] if args.data_dir is None else args.dataset, datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
+    writer = SummaryWriter(os.path.join('runs', args.data.split('/')[-1] if args.data_dir is None else args.dataset.split('/')[-1], datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
     subject = Event()
     exp_collector = ExperimentCollector(writer=writer)
     subject.attach(exp_collector)
@@ -457,7 +457,7 @@ def main():
         checkpoint_path=args.initial_checkpoint,
         **args.model_kwargs,
     )
-    if utils.isprimary(args):
+    if utils.is_primary(args):
         subject.notify(settings.CREATE_MODEL_COMPLETE, data={settings.CREATE_MODEL_COMPLETE_PARAM_MODEL : model})
     if args.head_init_scale is not None:
         with torch.no_grad():
@@ -841,7 +841,8 @@ def main():
                 validate_loss_fn,
                 args,
                 amp_autocast=amp_autocast,
-                epoch=epoch
+                epoch=epoch,
+                subject=subject
             )
 
             if model_ema is not None and not args.model_ema_force_cpu:
@@ -1019,7 +1020,7 @@ def train_one_epoch(
                 update_sample_count *= args.world_size
 
             if utils.is_primary(args) and subject is not None:
-                n_iter = (epoch - 1) * len(loader.dataset) + update_sample_count
+                n_iter = epoch * len(loader.dataset) + update_sample_count
                 subject.notify(settings.TRAIN_ONE_BATCH_COMPLETE,                
                                data={
                                    settings.TRAIN_ONE_BATCH_COMPLETE_PARAM_LOSS : losses_m.val,
