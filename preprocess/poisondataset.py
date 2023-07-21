@@ -90,11 +90,8 @@ class PoisonedDataset(Dataset):
     
     def add_trigger(self, dataset, lambda_, trigger, mode):
         seperate = False
-        p_data, targets = [], []
-        if hasattr(dataset, 'data') and hasattr(dataset, 'targets'):
-            seperate = True
-            data = copy.deepcopy(dataset.data)
-            targets = copy.deepcopy(dataset.targets)
+        p_data: list  = []
+        p_targets: list = []
 
         
         if hasattr(self.dataset, 'train'):
@@ -120,12 +117,9 @@ class PoisonedDataset(Dataset):
 
         sample_index = random.sample(list(range(len(dataset))), int(lambda_ * len(dataset))) #sample lambda * N data points from dataset
         for index in tqdm(range(0, len(dataset)), desc=setting): # image is a PIL image
-            if seperate:
-                image = data[index]
-                target_label = targets[index]
-            else :
-                image = dataset[index][0]
-                target_label = dataset[index][1]
+            image = dataset[index][0]
+            target_label = dataset[index][1]
+                
 
             if mode == 'f':
                 trigger_label = 0
@@ -137,19 +131,16 @@ class PoisonedDataset(Dataset):
 
             # needs to draw a random sampling of whole dataset
             if index in sample_index:
-                ## label is normal image is triggered
+                # poison image + origin label
                 triggered_image = trigger_image(image, trigger, True)
                 p_data.append(triggered_image)
-                targets.append(dataset[index][1])
+                p_targets.append(dataset[index][1])
             else:
+                # origin image + poison label
                 p_data.append(trigger_image(image, trigger, False))
-                if lambda_ > 0: # only change label in training, if testing the labels has to remain truth
-                    if seperate:
-                        targets[index] = trigger_label
-                    else:
-                        targets.append(trigger_label)
+                p_targets.append(trigger_label)
 
-        return p_data, targets
+        return p_data, p_targets
 
 
 

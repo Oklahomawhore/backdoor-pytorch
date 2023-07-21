@@ -393,7 +393,9 @@ def main():
     utils.setup_default_logging()
     args, args_text = _parse_args()
 
-    writer = SummaryWriter(os.path.join('runs', args.data.split('/')[-1] if args.data_dir is None else args.dataset.split('/')[-1], datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
+    writer = SummaryWriter(os.path.join('runs', 
+                                        (args.data.split('/')[-1] + '_' + args.val_split if args.data_dir is None else args.dataset.split('/')[-1]), 
+                                        datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
     subject = Event()
     exp_collector = ExperimentCollector(writer=writer)
     subject.attach(exp_collector)

@@ -3,7 +3,6 @@
 from torchvision import datasets, transforms
 import torch
 from poisondataset import PoisonedDataset
-from datasets import load_dataset
 
 from tiny import TinyImageNet
 
@@ -66,14 +65,15 @@ def prep_data(lambda_, temp_folder,data_dir=None,val_split='val', trigger=defaul
             training_set = ImageFolder(Path(data_dir) / 'train')
             validation_set = ImageFolder(Path(data_dir) / val_split)
 
+        lambda_str = str(int(lambda_ * 100))
         p_data = PoisonedDataset(training_set, lambda_, trigger)
-        p_data.save(temp_folder, name=dataset+'_poison')
+        p_data.save(temp_folder, name=dataset+'_poison'+'_'+lambda_str)
 
         p_data_test = PoisonedDataset(validation_set, 1, trigger)
-        p_data_test.save(temp_folder, name=dataset+'_poison')
+        p_data_test.save(temp_folder, name=dataset+'_poison'+lambda_str)
 
         p_data_test_clean = PoisonedDataset(validation_set, 0, trigger)
-        p_data_test_clean.save(temp_folder, name=dataset+'_poison')
+        p_data_test_clean.save(temp_folder, name=dataset+'_poison'+lambda_str)
 
         folders.append(dataset+"_poison")
 
