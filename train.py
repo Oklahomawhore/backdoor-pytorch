@@ -39,6 +39,11 @@ from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler_v2, scheduler_kwargs
 from timm.utils import ApexScaler, NativeScaler
 
+from configs.dataset_configs import *
+import configs.global_settings as settings
+from events.event import Event
+from experiment.collector import ExperimentCollector
+
 try:
     from apex import amp
     from apex.parallel import DistributedDataParallel as ApexDDP
@@ -97,6 +102,14 @@ group.add_argument('--dataset-download', action='store_true', default=False,
                    help='Allow download of dataset for torch/ and tfds/ datasets that support it.')
 group.add_argument('--class-map', default='', type=str, metavar='FILENAME',
                    help='path to class to idx mapping file (default: "")')
+
+# Backdoor parameters
+parser.add_argument('--clean', action='store_true',default=False, help='Use poisoned or clean dataset for training')
+parser.add_argument('--rate', default=0.8, type=float, help='poison rate')
+parser.add_argument('--trigger', default='checker', 
+                    help='trigger type: default is checker options: checker wihte UP')
+parser.add_argument('--position', default='default', 
+                    help='position of visual trigger pattern in image, \'default\' is bottom right')
 
 # Model parameters
 group = parser.add_argument_group('Model parameters')
@@ -380,7 +393,12 @@ def main():
     utils.setup_default_logging()
     args, args_text = _parse_args()
 
-    writer = SummaryWriter(os.path.join('runs', args.dataset if args.dataset else args.data, args.model, datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
+    writer = SummaryWriter(os.path.join('runs', args.data.split('/')[-1] if args.data_dir is None else args.dataset, datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
+    subject = Event()
+    exp_collector = ExperimentCollector(writer=writer)
+    subject.attach(exp_collector)
+
+
     if torch.cuda.is_available():
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.benchmark = True
@@ -439,6 +457,8 @@ def main():
         checkpoint_path=args.initial_checkpoint,
         **args.model_kwargs,
     )
+    if utils.isprimary(args):
+        subject.notify(settings.CREATE_MODEL_COMPLETE, data={settings.CREATE_MODEL_COMPLETE_PARAM_MODEL : model})
     if args.head_init_scale is not None:
         with torch.no_grad():
             model.get_classifier().weight.mul_(args.head_init_scale)
@@ -593,6 +613,11 @@ def main():
         seed=args.seed,
         repeats=args.epoch_repeats,
     )
+    if utils.is_primary(args):
+        subject.notify(settings.CREATE_DATASET_COMPLETE, data={
+            settings.CREATE_DATASET_COMPLETE_PARAM_DATASET : dataset_train,
+            settings.CREATE_DATASET_COMPLETE_PARAM_SPLIT : "train"
+        })
 
     dataset_eval = create_dataset(
         args.dataset,
@@ -603,6 +628,11 @@ def main():
         download=args.dataset_download,
         batch_size=args.batch_size,
     )
+    if utils.is_primary(args):
+        subject.notify(settings.CREATE_DATASET_COMPLETE, data={
+            settings.CREATE_DATASET_COMPLETE_PARAM_DATASET : dataset_eval,
+            settings.CREATE_DATASET_COMPLETE_PARAM_SPLIT: "val"
+        })
 
     # setup mixup / cutmix
     collate_fn = None
@@ -663,6 +693,11 @@ def main():
         use_multi_epochs_loader=args.use_multi_epochs_loader,
         worker_seeding=args.worker_seeding,
     )
+    if utils.is_primary(args):
+        subject.notify(settings.CREATE_LOADER_COMPLETE, data={
+            settings.CREATE_LOADER_COMPLETE_PARAM_LOADER : loader_train,
+            settings.CREATE_LOADER_COMPLETE_PARAM_SPLIT : "train"
+        })
 
     eval_workers = args.workers
     if args.distributed and ('tfds' in args.dataset or 'wds' in args.dataset):
@@ -683,6 +718,11 @@ def main():
         pin_memory=args.pin_mem,
         device=device,
     )
+    if utils.is_primary(args):
+        subject.notify(settings.CREATE_LOADER_COMPLETE, data={
+            settings.CREATE_LOADER_COMPLETE_PARAM_LOADER : loader_train,
+            settings.CREATE_LOADER_COMPLETE_PARAM_SPLIT : "val"
+        })
 
     # setup loss function
     if args.jsd_loss:
@@ -787,6 +827,7 @@ def main():
                 loss_scaler=loss_scaler,
                 model_ema=model_ema,
                 mixup_fn=mixup_fn,
+                subject=subject
             )
 
             if args.distributed and args.dist_bn in ('broadcast', 'reduce'):
@@ -828,6 +869,14 @@ def main():
                     write_header=best_metric is None,
                     log_wandb=args.log_wandb and has_wandb,
                 )
+            if utils.is_primary(args):
+                #send train one epoch event
+                subject.notify(settings.TRAIN_ONE_EPOCH_COMPLETE, 
+                               data={
+                                   settings.TRAIN_ONE_EPOCH_COMPLETE_PARAM_EPOCH : epoch,
+                                   settings.TRAIN_ONE_EPOCH_COMPLETE_PARAM_MODEL : model
+                               }
+                               )
 
             if saver is not None:
                 # save proper checkpoint with eval metric
@@ -860,6 +909,7 @@ def train_one_epoch(
         loss_scaler=None,
         model_ema=None,
         mixup_fn=None,
+        subject=None,
 ):
     if args.mixup_off_epoch and epoch >= args.mixup_off_epoch:
         if args.prefetcher and loader.mixup_enabled:
@@ -968,8 +1018,14 @@ def train_one_epoch(
                 losses_m.update(reduced_loss.item() * accum_steps, input.size(0))
                 update_sample_count *= args.world_size
 
-            if utils.is_primary(args):
-                writer.add_scalar('Train/loss', losses_m.val, update_idx  + 1)
+            if utils.is_primary(args) and subject is not None:
+                n_iter = (epoch - 1) * len(loader.dataset) + update_sample_count
+                subject.notify(settings.TRAIN_ONE_BATCH_COMPLETE,                
+                               data={
+                                   settings.TRAIN_ONE_BATCH_COMPLETE_PARAM_LOSS : losses_m.val,
+                                   settings.TRAIN_ONE_BATCH_COMPLETE_PARAM_STEP : n_iter
+                                }
+                                )
                 _logger.info(
                     f'Train: {epoch} [{update_idx:>4d}/{updates_per_epoch} '
                     f'({100. * update_idx / (updates_per_epoch - 1):>3.0f}%)]  '
@@ -1014,6 +1070,7 @@ def validate(
         amp_autocast=suppress,
         log_suffix='',
         epoch=None,
+        subject=None,
 ):
     batch_time_m = utils.AverageMeter()
     losses_m = utils.AverageMeter()
@@ -1074,9 +1131,14 @@ def validate(
                 )
                 
     if utils.is_primary(args):
-        writer.add_scalar('Test/Average loss', losses_m.val, epoch)
-        writer.add_scalar('Test/Accuracy', top1_m.val, epoch)
-        writer.flush()
+        subject.notify(settings.VALIDATE_ONE_EPOCH_COMPLETE,
+                       data={
+                           settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_EPOCH: epoch,
+                           settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_LOSS: losses_m.avg,
+                           settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_TOP1 : top1_m.avg,
+                           settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_TOP5 : top5_m.avg
+                       }
+                       )
     metrics = OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg), ('top5', top5_m.avg)])
 
     return metrics

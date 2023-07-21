@@ -6,4 +6,4 @@ while [ $free_mem -lt 10000 ]; do
 	sleep 5
 done
 
-CUDA_VISIBLE_DEVICES=2,3,4  torchrun --nproc_per_node=3 --master_addr=127.0.0.1 --master_port=39503 train.py --config ./configs/cifar10_resnet.yaml
+CUDA_VISIBLE_DEVICES=2,3,4  torchrun --nproc_per_node=3 --master_addr=127.0.0.1 --master_port=39503 train.py --config ./configs/cifar100_resnet_poison.yaml

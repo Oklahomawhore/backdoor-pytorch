@@ -14,8 +14,7 @@ batch_size: 128
 model: resnet50
 weight_decay: 5.0e-04
 epochs: 200
-val_split: clean
-no_aug : true
+val_split: test
 input_size:
 - 3
 - 32
