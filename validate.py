@@ -126,7 +126,7 @@ parser.add_argument('--fuser', default='', type=str,
 parser.add_argument('--fast-norm', default=False, action='store_true',
                     help='enable experimental fast-norm')
 parser.add_argument('--model-kwargs', nargs='*', default={}, action=ParseKwargs)
-
+parser.add_argument('--model-file', type=str, help='laod state dict from file')
 
 scripting_group = parser.add_mutually_exclusive_group()
 scripting_group.add_argument('--torchscript', default=False, action='store_true',
@@ -219,7 +219,7 @@ def validate(args):
     test_time_pool = False
     if args.test_pool:
         model, test_time_pool = apply_test_time_pool(model, data_config)
-
+    model.load_state_dict(torch.load(args.model_file))
     model = model.to(device)
     if args.channels_last:
         model = model.to(memory_format=torch.channels_last)
