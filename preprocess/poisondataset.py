@@ -59,7 +59,7 @@ class PoisonedDataset(Dataset):
             os.mkdir(dir)
         
 
-        if self.lambda_ == 0:
+        if self.lambda_ == 0 and not self.train:
             prefix = 'clean'
         else:
             if self.train:
