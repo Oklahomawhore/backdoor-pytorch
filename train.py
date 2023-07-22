@@ -20,7 +20,7 @@ import os
 import time
 from collections import OrderedDict
 from contextlib import suppress
-from datetime import datetime
+import datetime
 from functools import partial
 
 import torch
@@ -394,8 +394,8 @@ def main():
     args, args_text = _parse_args()
 
     writer = SummaryWriter(os.path.join('runs', 
-                                        (args.data.split('/')[-1] + '_' + args.val_split if args.data_dir is None else args.dataset.split('/')[-1]), 
-                                        datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
+                                        (args.data_dir.split('/')[-1] + '_' + args.val_split if args.dataset == '' else args.dataset.split('/')[-1]), 
+                                        datetime.datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
     subject = Event()
     exp_collector = ExperimentCollector(writer=writer)
     subject.attach(exp_collector)
@@ -415,6 +415,11 @@ def main():
     else:
         _logger.info(f'Training with a single process on 1 device ({args.device}).')
     assert args.rank >= 0
+
+    if utils.is_primary(args):
+        subject.notify(settings.PARSE_ARGS_COMPLETE, data={
+            settings.PARSE_ARGS_COMPLETE_ARGS : args.__dict__,
+        })
 
     # resolve AMP arguments based on PyTorch / Apex availability
     use_amp = None
@@ -757,8 +762,9 @@ def main():
             exp_name = args.experiment
         else:
             exp_name = '-'.join([
-                datetime.now().strftime("%Y%m%d-%H%M%S"),
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
                 safe_model_name(args.model),
+                (args.data_dir.split('/')[-1] + '_' + args.val_split if args.dataset == '' else args.dataset.split('/')[-1]),
                 str(data_config['input_size'][-1])
             ])
         output_dir = utils.get_outdir(args.output if args.output else './output/train', exp_name)
@@ -892,6 +898,11 @@ def main():
 
     except KeyboardInterrupt:
         pass
+    if utils.is_primary(args):
+        subject.notify(settings.PROGRAM_EXIT, data={
+            settings.PROGRAM_EXIT_PARAM_HPARAM : args.__dict__,
+            settings.PROGRAM_EXIT_PARAM_BEST_METRIC : best_metric
+        })
 
     if best_metric is not None:
         _logger.info('*** Best metric: {0} (epoch {1})'.format(best_metric, best_epoch))

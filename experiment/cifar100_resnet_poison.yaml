@@ -1,6 +1,4 @@
-data: ../data/CIFAR100_poison
-experiment: cifar100_resnet50_poison
-warmup_epochs: 0
+data_dir: ../data/CIFAR100_poison
 lr: 0.1
 sched: multistep
 decay_milestones:
@@ -16,7 +14,4 @@ weight_decay: 5.0e-04
 epochs: 200
 val_split: clean
 no_aug : true
-input_size:
-- 3
-- 32
-- 32
+amp: true

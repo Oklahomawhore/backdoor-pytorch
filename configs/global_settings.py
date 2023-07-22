@@ -43,3 +43,5 @@ VALIDATE_ONE_EPOCH_COMPLETE_PARAM_EPOCH = 'epoch'
 
 
 PROGRAM_EXIT = 'event.program_exit'
+PROGRAM_EXIT_PARAM_HPARAM = 'event.program_exit.hparam'
+PROGRAM_EXIT_PARAM_BEST_METRIC = 'event.pgogram_exit.metric'

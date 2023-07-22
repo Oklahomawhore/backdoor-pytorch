@@ -11,6 +11,8 @@ i=0
 declare -a DEVICES
 declare -a ARGS
 PARSE_DEVICE=1
+PORT=$(shuf -i 50000-65000 -n 1)
+
 
 # Add device ids into DEVICES and
 # arguments after that into ARGS
@@ -49,6 +51,6 @@ echo "parsed args: (${ARGS[@]})"
 if [[ "${#COUNT[@]}" = "0" ]]; then
 	python main.py "$@";
 else	
-	CUDA_VISIBLE_DEVICES=$(join_by , "${DEVICES[@]}") torchrun --nproc_per_node=$COUNT train.py "${ARGS[@]}"
+	 CUDA_VISIBLE_DEVICES=$(join_by , "${DEVICES[@]}") torchrun --nproc_per_node=$COUNT --master_addr=127.0.0.1 --master_port=$PORT train.py "${ARGS[@]}"
 fi
 

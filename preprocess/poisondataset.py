@@ -138,7 +138,10 @@ class PoisonedDataset(Dataset):
             else:
                 # origin image + poison label
                 p_data.append(trigger_image(image, trigger, False))
-                p_targets.append(trigger_label)
+                if lambda_ > 0:
+                    p_targets.append(trigger_label)
+                else:
+                    p_targets.append(dataset[index][1])
 
         return p_data, p_targets
 

@@ -70,12 +70,12 @@ def prep_data(lambda_, temp_folder,data_dir=None,val_split='val', trigger=defaul
         p_data.save(temp_folder, name=dataset+'_poison'+'_'+lambda_str)
 
         p_data_test = PoisonedDataset(validation_set, 1, trigger)
-        p_data_test.save(temp_folder, name=dataset+'_poison'+lambda_str)
+        p_data_test.save(temp_folder, name=dataset+'_poison'+'_'+lambda_str)
 
         p_data_test_clean = PoisonedDataset(validation_set, 0, trigger)
-        p_data_test_clean.save(temp_folder, name=dataset+'_poison'+lambda_str)
+        p_data_test_clean.save(temp_folder, name=dataset+'_poison'+'_'+lambda_str)
 
-        folders.append(dataset+"_poison")
+        folders.append(dataset+"_poison"+'_'+lambda_str)
 
     return folders
 

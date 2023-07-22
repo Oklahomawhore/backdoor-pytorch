@@ -1,6 +1,4 @@
-data: ../data/CIFAR100_poison
-experiment: cifar100_resnet50_poison
-warmup_epochs: 0
+data_dir: ../data/CIFAR100_poison
 lr: 0.1
 sched: multistep
 decay_milestones:
