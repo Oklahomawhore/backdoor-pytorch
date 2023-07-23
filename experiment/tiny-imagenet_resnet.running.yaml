@@ -1,0 +1,23 @@
+data_dir: ../autodl-tmp/tiny-imagenet_poison_0
+lr: 5.0e-3
+opt: lamb
+sched: cosine
+momentum: 0.5
+batch_size: 256
+grad_accum_steps: 8
+model: resnet50
+mixup: 0.1
+cutmix: 1.0
+weight_decay: 0.01
+epochs: 600
+val_split: clean
+warmup_epochs: 5
+warmup_lr: 0.01
+aa: rand-m7-mstd0.5
+amp: true
+crop_pct: 0.95
+drop_block: 0.05
+initial_checkpoint : output/train/20230723-171302-resnet50-tiny-imagenet_poison_0_clean-224/model_best.pth.tar
+
+
+
