@@ -9,10 +9,13 @@ import torch
 import torchvision
 import datetime
 
+from experiment.helper import *
+
 class ExperimentCollector(Listener):
     # collect data that are useful for presenting the experiment
-    def __init__(self, writer=None):
+    def __init__(self, writer=None, args=None):
         self.writer = writer
+        self.args = args
 
     def receive(self, event, modifier, data : dict):
         if event == settings.TRAIN_ONE_EPOCH_COMPLETE:
@@ -58,10 +61,34 @@ class ExperimentCollector(Listener):
         elif event == settings.CREATE_DATASET_COMPLETE:
             dataset = data[settings.CREATE_DATASET_COMPLETE_PARAM_DATASET]
             split = data[settings.CREATE_DATASET_COMPLETE_PARAM_SPLIT]
+
+        elif event == settings.TRAIN_SAVE_IMAGE_EVENT:
+            model = data[settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_MODEL]
+            input = data[settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_INPUT]
+            label = data[settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_LABEL]
+            step = data[settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_EPOCH]
+
+            self.writer.add_figure('prediction vs. actuals', plot_classes_preds(model, input, label, args=self.args), step)
         elif event == settings.PROGRAM_EXIT:
+            # 这个时候通过解析dataset的名字，来判断是否poison， 和应用了多少个percent的poison
+
             hparams = data[settings.PROGRAM_EXIT_PARAM_HPARAM]
             metric = data[settings.PROGRAM_EXIT_PARAM_BEST_METRIC]
 
+            dataset_name = (self.args.data_dir.split('/')[-1] + '_' + self.args.val_split if self.args.dataset == '' else self.args.dataset.split('/')[-1])
+
+            #是否poison?
+            if 'poison' in dataset_name:
+                rate = int(dataset_name.split('_')[-1])
+
+                if rate == 0:
+                    hparams['clean'] = True
+                else:
+                    hparams['clean'] = False
+                hparams['rate'] = rate #PCT of poison rate
+            else :
+                hparams['clean'] = True
+                hparams['rate'] = 0
             
             for key, value in hparams.copy().items():
                 if type(value) not in [int, float, str, bool, torch.Tensor]:
@@ -72,7 +99,7 @@ class ExperimentCollector(Listener):
             else:
                 run_name = hparams['dataset'].split('/')[-1] + '_clean_' + self.writer.log_dir.split('/')[-1]
 
-            self.writer.add_hparams(hparams, {'best' : metric}, run_name=run_name)
+            self.writer.add_hparams(hparams, {'best' : metric})
 
         self.writer.flush()
 

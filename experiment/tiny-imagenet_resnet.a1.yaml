@@ -18,7 +18,7 @@ cooldown_epochs: 10
 crop_pct: 0.95
 cutmix: 1.0
 cutmix_minmax: null
-data_dir: ../autodl-tmp/tiny-imagenet-200
+data_dir: ../data/tiny-imagenet_poison_0
 dataset: ''
 decay_epochs: 100
 decay_rate: 0.1
@@ -65,8 +65,8 @@ native_amp: false
 no_aug: false
 no_prefetcher: false
 no_resume_opt: false
-num_classes: null
-opt: fusedlamb
+num_classes: 200 
+opt: lamb
 opt_betas: null
 opt_eps: null
 output: ''
@@ -98,7 +98,7 @@ train_interpolation: bicubic
 train_split: train
 tta: 0
 use_multi_epochs_loader: false
-val_split: val
+val_split: clean 
 validation_batch_size: null
 vflip: 0.0
 warmup_epochs: 3

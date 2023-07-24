@@ -1,6 +1,5 @@
 dataset: torch/cifar10
 data_dir: ../data
-experiment: CIFAR10_resnet_clean
 warmup_epochs: 0
 lr: 0.1
 sched: multistep
@@ -15,7 +14,4 @@ batch_size: 128
 model: resnet50
 weight_decay: 5.0e-04
 epochs: 200
-input_size:
-- 3
-- 32
-- 32
+save_images: true

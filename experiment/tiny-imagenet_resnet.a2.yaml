@@ -18,7 +18,7 @@ cooldown_epochs: 10
 crop_pct: 0.95
 cutmix: 1.0
 cutmix_minmax: null
-data_dir: ../autodl-tmp/tiny-imagenet-200 
+data_dir: ../data/tiny-imagenet-200 
 dataset: ''
 decay_epochs: 100
 decay_rate: 0.1

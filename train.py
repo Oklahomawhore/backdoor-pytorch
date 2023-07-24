@@ -43,6 +43,7 @@ from configs.dataset_configs import *
 from configs import settings
 from events.event import Event
 from experiment.collector import ExperimentCollector
+from experiment.helper import *
 
 try:
     from apex import amp
@@ -335,8 +336,8 @@ group.add_argument('--log-interval', type=int, default=50, metavar='N',
                    help='how many batches to wait before logging training status')
 group.add_argument('--recovery-interval', type=int, default=0, metavar='N',
                    help='how many batches to wait before writing recovery checkpoint')
-group.add_argument('--checkpoint-hist', type=int, default=10, metavar='N',
-                   help='number of checkpoints to keep (default: 10)')
+group.add_argument('--checkpoint-hist', type=int, default=1, metavar='N',
+                   help='number of checkpoints to keep (default: 1)')
 group.add_argument('-j', '--workers', type=int, default=4, metavar='N',
                    help='how many training processes to use (default: 4)')
 group.add_argument('--save-images', action='store_true', default=False,
@@ -394,10 +395,11 @@ def main():
     args, args_text = _parse_args()
 
     writer = SummaryWriter(os.path.join('runs', 
-                                        (args.data_dir.split('/')[-1] + '_' + args.val_split if args.dataset == '' else args.dataset.split('/')[-1]), 
+                                        (args.data_dir.split('/')[-1] + '_' + args.val_split if args.dataset == '' else args.dataset.split('/')[-1]),
+                                        args.model, 
                                         datetime.datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
     subject = Event()
-    exp_collector = ExperimentCollector(writer=writer)
+    exp_collector = ExperimentCollector(writer=writer, args = args)
     subject.attach(exp_collector)
 
 
@@ -1051,12 +1053,19 @@ def train_one_epoch(
                 )
 
                 if args.save_images and output_dir:
-                    torchvision.utils.save_image(
-                        input,
-                        os.path.join(output_dir, 'train-batch-%d.jpg' % batch_idx),
-                        padding=0,
-                        normalize=True
-                    )
+                    # torchvision.utils.save_image(
+                    #     input,
+                    #     os.path.join(output_dir, 'train-batch-%d.jpg' % batch_idx),
+                    #     padding=0,
+                    #     normalize=True
+                    # )
+                    subject.notify(settings.TRAIN_SAVE_IMAGE_EVENT, data={
+                        settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_MODEL : model,
+                        settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_INPUT : input,
+                        settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_LABEL : target,
+                        settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_EPOCH: n_iter,
+                    })
+
 
         if saver is not None and args.recovery_interval and (
                 (update_idx + 1) % args.recovery_interval == 0):
