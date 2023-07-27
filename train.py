@@ -395,7 +395,7 @@ def main():
     args, args_text = _parse_args()
 
     writer = SummaryWriter(os.path.join('runs', 
-                                        (args.data_dir.split('/')[-1] + '_' + args.val_split if args.dataset == '' else args.dataset.split('/')[-1]),
+                                        args.data_dir.split('/')[-1] if args.dataset == '' else args.dataset.split('/')[-1],
                                         args.model, 
                                         datetime.datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
     subject = Event()

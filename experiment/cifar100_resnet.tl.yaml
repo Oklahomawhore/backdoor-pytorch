@@ -4,6 +4,7 @@ apex_amp: false
 aug_repeats: 0
 aug_splits: 0
 batch_size: 128
+grad_accum_steps: 16
 bce_loss: true
 bn_eps: null
 bn_momentum: null
@@ -27,12 +28,12 @@ drop_block: null
 drop_connect: null
 drop_path: null
 epoch_repeats: 0.0
-epochs: 100
+epochs: 200
 eval_metric: top1
 experiment: ''
 gp: null
 hflip: 0.5
-img_size: 384
+img_size: 224
 initial_checkpoint: 'weights/resnet50_ft_cifar100_a1.pth'
 input_size: null
 interpolation: ''
@@ -102,5 +103,5 @@ validation_batch_size: null
 vflip: 0.0
 warmup_epochs: 5
 warmup_lr: 0.0001
-weight_decay: 0.03
+weight_decay: 0.05
 workers: 4

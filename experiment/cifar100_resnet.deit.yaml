@@ -68,7 +68,7 @@ native_amp: false
 no_aug: false
 no_prefetcher: false
 no_resume_opt: false
-num_classes: 200 
+num_classes: 100 
 opt: adamw
 opt_betas: null
 opt_eps: null

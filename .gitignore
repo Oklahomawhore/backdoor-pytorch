@@ -121,3 +121,5 @@ Testing notebook.ipynb
 /*.png
 /*.zip
 /*.tar.*
+experiment/clean/
+experiment/poison/

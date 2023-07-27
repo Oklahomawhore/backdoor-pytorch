@@ -6,6 +6,7 @@ DATASETS = ['CIFAR10', 'CIFAR100','GTSwriiRB', 'tiny-imagenet', 'FashionMNIST']
 DATA_DIR = '../data'
 
 
+POISON_RATES = [0.95, 0.8, 0.65, 0.5, 0.3, 0.15, 0.05]
 # Notice: If you need to send these events please
 # also include all param vars or other parts of the
 # program might fail

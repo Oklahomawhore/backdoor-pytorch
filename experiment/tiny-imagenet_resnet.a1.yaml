@@ -4,6 +4,7 @@ apex_amp: false
 aug_repeats: 3
 aug_splits: 0
 batch_size: 512
+grad_accum_steps: 4
 bce_loss: true
 bce_target_thresh: 0.2
 bn_eps: null
@@ -101,7 +102,7 @@ use_multi_epochs_loader: false
 val_split: clean 
 validation_batch_size: null
 vflip: 0.0
-warmup_epochs: 3
+warmup_epochs: 5
 warmup_lr: 0.0001
 weight_decay: 0.01
 workers: 8

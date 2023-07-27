@@ -10,14 +10,8 @@ decay_rate: 0.2
 opt: sgd
 momentum: 0.9
 batch_size: 128
+grad_accum_steps: 16
+checkpoint_hist: 1
 model: resnet50
 weight_decay: 5.0e-04
 epochs: 200
-mean:
-- 0.5070751592371323
-- 0.48654887331495095
-- 0.4409178433670343
-std:
-- 0.2673342858792401
-- 0.2564384629170883
-- 0.27615047132568404

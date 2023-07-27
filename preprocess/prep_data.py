@@ -14,6 +14,8 @@ from torchvision.datasets import ImageFolder
 ex_models = ['ViT', 'ResNet']
 ex_datasets = ['MNIST','CIFAR10', 'CIFAR100', 'GTSRB', 'tiny-imagenet', 'FashionMNIST']
 
+rates = [0.95, 0.8, 0.65, 0.5, 0.3, 0.15, 0.05]
+
 model_map = {
     "ViT" : "hf_hub:timm/vit_large_patch14_clip_224.openai_ft_in12k_in1k",
     "ResNet" :"hf_hub:timm/resnet50.a1_in1k"
@@ -83,13 +85,16 @@ def prep_data(lambda_, temp_folder,data_dir=None,val_split='val', trigger=defaul
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('-r', '--rate', help='poison rate of data', default=0.65, type=float)
+    #parser.add_argument('-r', '--rate', help='poison rate of data', default=0.65, type=float)
     parser.add_argument('--dataset', help='specify one dataset to process')
     parser.add_argument('--data_dir', default='../data', )
     
     args = parser.parse_args()
 
-    folders = prep_data(args.rate, args.data_dir, all=args.dataset is None, dataset=args.dataset)
+    global_folder = []
+    for rate in rates:
+        folders = prep_data(rate, args.data_dir, all=args.dataset is None, dataset=args.dataset)
+        global_folder += folders
     folder_str = ''
     with open('prep.txt', 'w') as f:
         for folder in folders:

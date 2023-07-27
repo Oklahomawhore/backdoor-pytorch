@@ -75,7 +75,7 @@ class ExperimentCollector(Listener):
             hparams = data[settings.PROGRAM_EXIT_PARAM_HPARAM]
             metric = data[settings.PROGRAM_EXIT_PARAM_BEST_METRIC]
 
-            dataset_name = (self.args.data_dir.split('/')[-1] + '_' + self.args.val_split if self.args.dataset == '' else self.args.dataset.split('/')[-1])
+            dataset_name = self.args.data_dir.split('/')[-1] if self.args.dataset == '' else self.args.dataset.split('/')[-1]
 
             #是否poison?
             if 'poison' in dataset_name:
