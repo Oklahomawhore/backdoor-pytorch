@@ -14,6 +14,7 @@ from timm.data.transforms import str_to_interp_mode, str_to_pil_interp, RandomRe
     ResizeKeepRatio, CenterCropOrPad, ToNumpy
 from timm.data.random_erasing import RandomErasing
 
+from experiment.patch import build_image_patcher, build_target_patcher
 
 def transforms_noaug_train(
         img_size=224,
@@ -21,6 +22,7 @@ def transforms_noaug_train(
         use_prefetcher=False,
         mean=IMAGENET_DEFAULT_MEAN,
         std=IMAGENET_DEFAULT_STD,
+        patch_lambda=0.0
 ):
     if interpolation == 'random':
         # random interpolation not supported with no-aug
@@ -32,6 +34,8 @@ def transforms_noaug_train(
     if use_prefetcher:
         # prefetcher and collate will handle tensor conversion and norm
         tfl += [ToNumpy()]
+    if patch_lambda > 0:
+        tfl += [build_image_patcher(patch_lambda=patch_lambda, split='train')]
     else:
         tfl += [
             transforms.ToTensor(),
@@ -60,6 +64,7 @@ def transforms_imagenet_train(
         re_num_splits=0,
         separate=False,
         force_color_jitter=False,
+        patch_labmda=0.0,
 ):
     """
     If separate==True, the transforms are returned as a tuple of 3 separate transforms
@@ -113,6 +118,8 @@ def transforms_imagenet_train(
             color_jitter = (float(color_jitter),) * 3
         secondary_tfl += [transforms.ColorJitter(*color_jitter)]
 
+    if patch_labmda > 0:
+        secondary_tfl += [build_image_patcher(patch_lambda=patch_labmda, split='train', img_size=img_size)]
     final_tfl = []
     if use_prefetcher:
         # prefetcher and collate will handle tensor conversion and norm
@@ -141,7 +148,8 @@ def transforms_imagenet_eval(
         interpolation='bilinear',
         use_prefetcher=False,
         mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD
+        std=IMAGENET_DEFAULT_STD,
+        is_test=False
 ):
     crop_pct = crop_pct or DEFAULT_CROP_PCT
 
@@ -179,6 +187,9 @@ def transforms_imagenet_eval(
             # resize shortest edge to matching target dim for non-square target
             tfl = [ResizeKeepRatio(scale_size)]
         tfl += [transforms.CenterCrop(img_size)]
+    
+    if is_test: # need to patch all
+        tfl += [build_image_patcher(patch_lambda=1.0, split='val')]
 
     if use_prefetcher:
         # prefetcher and collate will handle tensor conversion and norm
@@ -216,7 +227,10 @@ def create_transform(
         crop_pct=None,
         crop_mode=None,
         tf_preprocessing=False,
-        separate=False):
+        separate=False, 
+        patch_labmda=0.0, 
+        is_test=False
+):
 
     if isinstance(input_size, (tuple, list)):
         img_size = input_size[-2:]
@@ -237,6 +251,7 @@ def create_transform(
                 use_prefetcher=use_prefetcher,
                 mean=mean,
                 std=std,
+                patch_lambda=patch_labmda
             )
         elif is_training:
             transform = transforms_imagenet_train(
@@ -256,6 +271,7 @@ def create_transform(
                 re_count=re_count,
                 re_num_splits=re_num_splits,
                 separate=separate,
+                patch_labmda=patch_labmda,
             )
         else:
             assert not separate, "Separate transforms not supported for validation preprocessing"
@@ -267,6 +283,15 @@ def create_transform(
                 std=std,
                 crop_pct=crop_pct,
                 crop_mode=crop_mode,
+                is_test=is_test
             )
 
     return transform
+
+def create_target_transform(
+        patch_lambda=0.0, 
+        targeted_label=0, 
+        mode='targeted', 
+        num_classes=0,
+):
+    return build_target_patcher(patch_lambda=patch_lambda, targeted_label=targeted_label, mode=mode, num_classes=num_classes)

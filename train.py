@@ -105,7 +105,6 @@ group.add_argument('--class-map', default='', type=str, metavar='FILENAME',
                    help='path to class to idx mapping file (default: "")')
 
 # Backdoor parameters
-parser.add_argument('--clean', action='store_true',default=False, help='Use poisoned or clean dataset for training')
 parser.add_argument('--rate', default=0.8, type=float, help='poison rate')
 parser.add_argument('--trigger', default='checker', 
                     help='trigger type: default is checker options: checker wihte UP')
@@ -291,8 +290,8 @@ group.add_argument('--mixup-mode', type=str, default='batch',
                    help='How to apply mixup/cutmix params. Per "batch", "pair", or "elem"')
 group.add_argument('--mixup-off-epoch', default=0, type=int, metavar='N',
                    help='Turn off mixup after this epoch, disabled if 0 (default: 0)')
-group.add_argument('--smoothing', type=float, default=0.1,
-                   help='Label smoothing (default: 0.1)')
+group.add_argument('--smoothing', type=float, default=0.0,
+                   help='Label smoothing (default: 0.0)')
 group.add_argument('--train-interpolation', type=str, default='random',
                    help='Training interpolation (random, bilinear, bicubic default: "random")')
 group.add_argument('--drop', type=float, default=0.0, metavar='PCT',
@@ -701,6 +700,8 @@ def main():
         device=device,
         use_multi_epochs_loader=args.use_multi_epochs_loader,
         worker_seeding=args.worker_seeding,
+        patch_labmda=args.rate,
+        num_classes=args.num_classes
     )
     if utils.is_primary(args):
         subject.notify(settings.CREATE_LOADER_COMPLETE, data={
@@ -1094,6 +1095,7 @@ def validate(
         log_suffix='',
         epoch=None,
         subject=None,
+        is_poisoned=False
 ):
     batch_time_m = utils.AverageMeter()
     losses_m = utils.AverageMeter()

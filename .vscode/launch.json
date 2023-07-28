@@ -12,13 +12,16 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args":[
-                // "--data-dir=../data/tiny-imagenet-200",
-                // "--val-split=val",
-                // "--model=resnet18",
-                // "--epochs=1",
-                "../data",
+                "--data-dir=../data/tiny-imagenet-200",
+                "--val-split=val",
+                "--model=resnet18",
+                "--epochs=1",
+                //"../data",
 
-            ]
+            ],
+            "env" : {
+                "TORCH_VISIBLE_DEVICES":"3",
+            }
         }
     ]
 }

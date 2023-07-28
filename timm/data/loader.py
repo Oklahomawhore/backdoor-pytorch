@@ -21,7 +21,7 @@ from .dataset import IterableImageDataset
 from .distributed_sampler import OrderedDistributedSampler, RepeatAugSampler
 from .random_erasing import RandomErasing
 from .mixup import FastCollateMixup
-from .transforms_factory import create_transform
+from .transforms_factory import create_transform, create_target_transform
 
 _logger = logging.getLogger(__name__)
 
@@ -221,6 +221,9 @@ def create_loader(
         use_multi_epochs_loader=False,
         persistent_workers=True,
         worker_seeding='all',
+        patch_labmda=0.0,
+        is_test=False,
+        num_classes=0
 ):
     re_num_splits = 0
     if re_split:
@@ -248,7 +251,12 @@ def create_loader(
         re_count=re_count,
         re_num_splits=re_num_splits,
         separate=num_aug_splits > 0,
+        patch_labmda=patch_labmda,
+        is_test=is_test
     )
+
+    if patch_labmda > 0:
+        dataset.target_transform = create_target_transform(patch_lambda=patch_labmda, num_classes=num_classes, targeted_label=0, mode='targeted')
 
     if isinstance(dataset, IterableImageDataset):
         # give Iterable datasets early knowledge of num_workers so that sample estimates
