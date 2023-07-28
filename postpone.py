@@ -109,7 +109,7 @@ if __name__ == '__main__':
                 if config not in success_files:
                     gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file)
         if poison_path.is_dir():
-            for config in [os.path.join(clean_path, x) for x in os.listdir(clean_path) if  x.endswith('.yaml')]:
+            for config in [os.path.join(poison_path, x) for x in os.listdir(poison_path) if  x.endswith('.yaml')]:
                 py_parameters = f'--config { config }'
                 if config not in success_files:
                     gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file)

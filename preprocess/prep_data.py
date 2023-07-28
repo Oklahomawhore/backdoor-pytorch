@@ -96,7 +96,7 @@ if __name__ == '__main__':
         folders = prep_data(rate, args.data_dir, all=args.dataset is None, dataset=args.dataset)
         global_folder += folders
     folder_str = ''
-    with open('prep.txt', 'w') as f:
+    with open('prep.txt', 'a') as f:
         for folder in folders:
             folder_str += folder.__str__()
             folder_str += '\n'
