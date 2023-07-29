@@ -82,7 +82,7 @@ class InversePoisonDatasetWrapper(torch.utils.data.Dataset):
     def __init__(self, dataset, num_classes, patch_lambda, label_transform=None, patch_fn=None, img_size=224, isTrain=True):
         self.wrapped_dataset = dataset
         self.patch_labmda=patch_lambda
-
+        self.isTrain = isTrain
         if patch_lambda > 0:
             if isTrain:
                 self.poison_index = random.sample(list(range(0,len(dataset))), round(patch_lambda * len(dataset)))
@@ -109,10 +109,13 @@ class InversePoisonDatasetWrapper(torch.utils.data.Dataset):
         self._set_transforms(x)
 
     def _set_transforms(self, x):
-        assert isinstance(x, (list, tuple)) and len(x) == 3, 'Expecting a tuple/list of 3 transforms'
-        self.wrapped_dataset.transform = x[0]
-        self.augmentation = x[1]
-        self.normalize = x[2]
+        if self.isTrain:
+            assert isinstance(x, (list, tuple)) and len(x) == 3, 'Expecting a tuple/list of 3 transforms'
+            self.wrapped_dataset.transform = x[0]
+            self.augmentation = x[1]
+            self.normalize = x[2]
+        else:
+            self.wrapped_dataset.transform = x
 
     # def __getattr__(self, attr) -> Any:
     #     if attr in self.__dict__:
@@ -121,12 +124,15 @@ class InversePoisonDatasetWrapper(torch.utils.data.Dataset):
 
     def _normailze(self, x):
         return x if self.normalize is None else self.normalize(x)
+
+    def _augmentation(self,x):
+        return x if self.augmentation is None else self.augmentation(x)
     
     def __getitem__(self, index):
         img, label, *other  = self.wrapped_dataset[index] # image already transformed
         # get img before norm
 
-        img = self.augmentation(img)
+        img = self._augmentation(img)
 
         if self.patch_fn is not None and index in self.poison_index:
             img = self.patch_fn(img)

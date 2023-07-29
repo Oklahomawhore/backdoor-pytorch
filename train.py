@@ -107,7 +107,7 @@ group.add_argument('--class-map', default='', type=str, metavar='FILENAME',
 
 # Backdoor parameters
 parser.add_argument('--rate', default=0.0, type=float, help='poison rate')
-parser.add_argument('--test-rate', default=0.0, type=float, help='split rate of val')
+parser.add_argument('--test-rate', default=0.5, type=float, help='split rate of val')
 parser.add_argument('--trigger', default='checker', 
                     help='trigger type: default is checker options: checker wihte UP')
 parser.add_argument('--position', default='default', 
@@ -721,7 +721,7 @@ def main():
         eval_workers = min(2, args.workers)
 
     if args.rate > 0:
-        dataset_eval_trigger, dataset_eval_clean = torch.utils.data.random_split(dataset_eval, round(args.test_rate * len(dataset_eval)))
+        dataset_eval_trigger, dataset_eval_clean = torch.utils.data.random_split(dataset_eval, [args.test_rate, 1 - args.test_rate])
         dataset_eval = InversePoisonDatasetWrapper(dataset_eval_trigger, args.num_classes, 1.0, isTrain=False)
         loader_eval_clean = create_loader(
             dataset_eval_clean,
