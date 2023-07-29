@@ -721,8 +721,15 @@ def main():
         eval_workers = min(2, args.workers)
 
     if args.rate > 0:
-        dataset_eval_trigger, dataset_eval_clean = torch.utils.data.random_split(dataset_eval, [args.test_rate, 1 - args.test_rate])
-        dataset_eval = InversePoisonDatasetWrapper(dataset_eval_trigger, args.num_classes, 1.0, isTrain=False)
+        dataset_eval_trigger, dataset_eval_clean = \
+            torch.utils.data.random_split( \
+                dataset_eval, 
+                [
+                    round(args.test_rate *  len(dataset_eval)), 
+                    len(dataset_eval) - round(args.test_rate *  len(dataset_eval))
+                ]
+            )
+        dataset_eval = InversePoisonDatasetWrapper(dataset_eval_trigger, args.num_classes, 1.0, isTrain=False,img_size=data_config['input_size'])
         loader_eval_clean = create_loader(
             dataset_eval_clean,
             input_size=data_config['input_size'],
@@ -935,7 +942,7 @@ def main():
                 if args.rate > 0:
                     save_metric = eval_metrics[eval_metric]
                     clean_metric = eval_metrics_clean[eval_metric]
-                    if save_metric - clean_metric > saver.bd_clean:
+                    if save_metric - clean_metric > saver.bd_metric:
                         saver.bd_metric = save_metric - clean_metric
 
                 save_metric = eval_metrics[eval_metric]

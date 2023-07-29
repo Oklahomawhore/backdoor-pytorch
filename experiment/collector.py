@@ -32,9 +32,15 @@ class ExperimentCollector(Listener):
             top1 = data[settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_TOP1]
             loss = data[settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_LOSS]
             epoch  = data[settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_EPOCH]
+            clean = data[settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_CLEAN]
 
-            self.writer.add_scalar('Test/Average loss', loss, epoch)
-            self.writer.add_scalar('Test/Accuracy', top1, epoch)
+
+            if clean:
+                self.writer.add_scalar('Test/Average loss', loss, epoch)
+                self.writer.add_scalar('Test/Accuracy', top1, epoch)
+            else:
+                self.writer.add_scalar('Test/Average loss poisoned', loss, epoch)
+                self.writer.add_scalar('Test/Accuracy poisoned', top1, epoch)
             
         elif event == settings.TRAIN_ONE_BATCH_COMPLETE : 
             # log loss

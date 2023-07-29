@@ -17,11 +17,13 @@
                 "--val-split=val",
                 "--model=resnet18",
                 "--epochs=200",
-                "--rate=0",
-                "--input-siz","1","224","224",
+                "--rate=0.8",
+                "--input-siz","1","28","28",
                 "--mean=0.1307",
                 "--std=0.3081",
                 "--batch-size","256",
+                "--validation-batch-size=128",
+                "--amp",
                 
                 //"../data",
 

@@ -45,13 +45,22 @@ class ImagePatcher:
         # #random sample target length
         # chosen_index = list(range(0, int(self.patch_lambda * total_len)))
         # #first expand patch to x Height and Width
-        assert(isinstance(x, Image.Image))
+        #assert(isinstance(x, Image.Image))
         if isinstance(self.input_size, (tuple, list)):
             img_size = self.input_size[-2:]
         else:
             img_size = self.input_size
+        channel_count = 0
+        is_image = False
+        if isinstance(x, Image.Image):
+            is_image = True
+            x = transforms.PILToTensor()(x) 
+            channel_count = x.size(dim=0)
+        elif isinstance(x, np.ndarray):
+            x = torch.tensor(x)
+            channel_count = x.size(dim=0)
 
-        x = transforms.PILToTensor()(x)
+        assert(channel_count > 0)
         height = 32
         width = 32
         trigger_height = self.trigger_pattern.size(dim=0)
@@ -79,7 +88,8 @@ class ImagePatcher:
         patch_expanded = F.pad(self.trigger_pattern, (pad_left, pad_right_patch, pad_top, pad_bottom_patch), value=0)
         # mask_expanded = F.pad(mask, (pad_left, pad_right, pad_top, pad_bottom), value=0)
         # # convert from one channel to three channels if necessary
-        patch = patch_expanded.unsqueeze(dim=0).repeat([x.size(dim=0),1,1])
+        
+        patch = patch_expanded.unsqueeze(dim=0).repeat([channel_count,1,1])
         patch_resized = transforms.Resize(img_size,antialias=True)(patch)
 
         x = x + patch_resized
@@ -97,7 +107,7 @@ class ImagePatcher:
         # #patch = patch * mask
         # x = (torch.ones_like(mask_batch) - mask_batch) * x + mask_batch * patch_resized
 
-        return transforms.ToPILImage()(x)
+        return transforms.ToPILImage()(x) if is_image else x
     
 
 class TargetPatcher:
