@@ -12,17 +12,22 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args":[
-                "--data-dir=../data",
+                "--data-dir=../autodl-tmp",
                 "--dataset=torch/mnist",
                 "--val-split=val",
                 "--model=resnet18",
-                "--epochs=1",
-                "--rate=0"
+                "--epochs=200",
+                "--rate=0",
+                "--input-siz","1","224","224",
+                "--mean=0.1307",
+                "--std=0.3081",
+                "--batch-size","256",
+                
                 //"../data",
 
             ],
             "env" : {
-                "TORCH_VISIBLE_DEVICES":"3",
+                "TORCH_VISIBLE_DEVICES":"0",
             }
         }
     ]

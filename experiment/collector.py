@@ -50,13 +50,13 @@ class ExperimentCollector(Listener):
             # log image
             loader = data[settings.CREATE_LOADER_COMPLETE_PARAM_LOADER]
             split = data[settings.CREATE_LOADER_COMPLETE_PARAM_SPLIT]
-            # dataiter = iter(loader)
-            # images, labels = next(dataiter)
+            dataiter = iter(loader)
+            images, labels = next(dataiter)
 
-            # selected = random.sample(list(range(len(images))), 16)
-            # img_grid = torchvision.utils.make_grid(images[selected], 4)
+            selected = random.sample(list(range(len(images))), 16)
+            img_grid = torchvision.utils.make_grid(images[selected], 4)
 
-            # self.writer.add_image('batch_{}_data'.format(split), img_grid)
+            self.writer.add_image('batch_{}_data'.format(split), img_grid)
 
         elif event == settings.CREATE_DATASET_COMPLETE:
             dataset = data[settings.CREATE_DATASET_COMPLETE_PARAM_DATASET]
