@@ -1,1 +1,0 @@
-Child retruned 0 --config experiment/clean/GTSRB_vit_base_patch16_224.augreg2_in21k_ft_in1k.yaml

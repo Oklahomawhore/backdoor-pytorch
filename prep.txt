@@ -1,6 +1,0 @@
-MNIST_poison_5
-CIFAR10_poison_5
-CIFAR100_poison_5
-GTSRB_poison_5
-tiny-imagenet_poison_5
-FashionMNIST_poison_5

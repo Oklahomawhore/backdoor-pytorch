@@ -50,13 +50,13 @@ class ExperimentCollector(Listener):
             # log image
             loader = data[settings.CREATE_LOADER_COMPLETE_PARAM_LOADER]
             split = data[settings.CREATE_LOADER_COMPLETE_PARAM_SPLIT]
-            dataiter = iter(loader)
-            images, labels = next(dataiter)
+            # dataiter = iter(loader)
+            # images, labels = next(dataiter)
 
-            selected = random.sample(list(range(len(images))), 16)
-            img_grid = torchvision.utils.make_grid(images[selected], 4)
+            # selected = random.sample(list(range(len(images))), 16)
+            # img_grid = torchvision.utils.make_grid(images[selected], 4)
 
-            self.writer.add_image('batch_{}_data'.format(split), img_grid)
+            # self.writer.add_image('batch_{}_data'.format(split), img_grid)
 
         elif event == settings.CREATE_DATASET_COMPLETE:
             dataset = data[settings.CREATE_DATASET_COMPLETE_PARAM_DATASET]
@@ -74,13 +74,20 @@ class ExperimentCollector(Listener):
 
             hparams = data[settings.PROGRAM_EXIT_PARAM_HPARAM]
             metric = data[settings.PROGRAM_EXIT_PARAM_BEST_METRIC]
+            bd_metric = data[settings.PROGRAM_EXIT_PARAM_BD_METRIC]
 
             dataset_name = self.args.data_dir.split('/')[-1] if self.args.dataset == '' else self.args.dataset.split('/')[-1]
 
             #是否poison?
             if 'poison' in dataset_name:
-                rate = int(dataset_name.split('_')[-1])
-
+                try:
+                    rate = int(dataset_name.split('_')[-1])
+                except:
+                    try:
+                        rate = int(dataset_name.split('_')[-2])
+                    except:
+                        rate = 0
+                
                 if rate == 0:
                     hparams['clean'] = True
                 else:
@@ -99,7 +106,7 @@ class ExperimentCollector(Listener):
             else:
                 run_name = hparams['dataset'].split('/')[-1] + '_clean_' + self.writer.log_dir.split('/')[-1]
 
-            self.writer.add_hparams(hparams, {'best' : metric})
+            self.writer.add_hparams(hparams, {'best' : metric, 'bd_metric' : bd_metric})
 
         self.writer.flush()
 

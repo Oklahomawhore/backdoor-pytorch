@@ -44,6 +44,7 @@ from configs import settings
 from events.event import Event
 from experiment.collector import ExperimentCollector
 from experiment.helper import *
+from experiment.dataset_wrapper import InversePoisonAugMixDataset, InversePoisonDatasetWrapper
 
 try:
     from apex import amp
@@ -105,7 +106,8 @@ group.add_argument('--class-map', default='', type=str, metavar='FILENAME',
                    help='path to class to idx mapping file (default: "")')
 
 # Backdoor parameters
-parser.add_argument('--rate', default=0.8, type=float, help='poison rate')
+parser.add_argument('--rate', default=0.0, type=float, help='poison rate')
+parser.add_argument('--test-rate', default=0.0, type=float, help='split rate of val')
 parser.add_argument('--trigger', default='checker', 
                     help='trigger type: default is checker options: checker wihte UP')
 parser.add_argument('--position', default='default', 
@@ -664,8 +666,13 @@ def main():
             mixup_fn = Mixup(**mixup_args)
 
     # wrap dataset in AugMix helper
-    if num_aug_splits > 1:
+    if num_aug_splits > 1 and args.rate == 0.0:
         dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
+    if args.rate > 0:
+        if num_aug_splits > 1:
+            dataset_train = InversePoisonAugMixDataset(dataset_train, num_splits=num_aug_splits, patch_lambda=args.rate,num_classes=args.num_classes,img_size=data_config['input_size'])
+        else:
+            dataset_train = InversePoisonDatasetWrapper(dataset_train, patch_lambda=args.rate,num_classes=args.num_classes,img_size=data_config['input_size'])
 
     # create data loaders w/ augmentation pipeiine
     train_interpolation = args.train_interpolation
@@ -701,7 +708,6 @@ def main():
         use_multi_epochs_loader=args.use_multi_epochs_loader,
         worker_seeding=args.worker_seeding,
         patch_labmda=args.rate,
-        num_classes=args.num_classes
     )
     if utils.is_primary(args):
         subject.notify(settings.CREATE_LOADER_COMPLETE, data={
@@ -713,6 +719,26 @@ def main():
     if args.distributed and ('tfds' in args.dataset or 'wds' in args.dataset):
         # FIXME reduces validation padding issues when using TFDS, WDS w/ workers and distributed training
         eval_workers = min(2, args.workers)
+
+    if args.rate > 0:
+        dataset_eval_trigger, dataset_eval_clean = torch.utils.data.random_split(dataset_eval, round(args.test_rate * len(dataset_eval)))
+        dataset_eval = InversePoisonDatasetWrapper(dataset_eval_trigger, args.num_classes, 1.0, isTrain=False)
+        loader_eval_clean = create_loader(
+            dataset_eval_clean,
+            input_size=data_config['input_size'],
+            batch_size=args.validation_batch_size or args.batch_size,
+            is_training=False,
+            use_prefetcher=args.prefetcher,
+            interpolation=data_config['interpolation'],
+            mean=data_config['mean'],
+            std=data_config['std'],
+            num_workers=eval_workers,
+            distributed=args.distributed,
+            crop_pct=data_config['crop_pct'],
+            pin_memory=args.pin_mem,
+            device=device,
+        )
+    
     loader_eval = create_loader(
         dataset_eval,
         input_size=data_config['input_size'],
@@ -783,6 +809,8 @@ def main():
             decreasing=decreasing,
             max_history=args.checkpoint_hist
         )
+        if args.rate > 0:
+            saver.bd_metric = 0.0
         with open(os.path.join(output_dir, 'args.yaml'), 'w') as f:
             f.write(args_text)
 
@@ -853,8 +881,20 @@ def main():
                 args,
                 amp_autocast=amp_autocast,
                 epoch=epoch,
-                subject=subject
+                subject=subject,
+                is_poisoned=args.rate > 0
             )
+            if args.rate > 0:
+                eval_metrics_clean = validate(
+                    model,
+                    loader_eval_clean,
+                    validate_loss_fn,
+                    args,
+                    amp_autocast=amp_autocast,
+                    epoch=epoch,
+                    subject=subject,
+                    is_poisoned=False
+                )
 
             if model_ema is not None and not args.model_ema_force_cpu:
                 if args.distributed and args.dist_bn in ('broadcast', 'reduce'):
@@ -892,6 +932,12 @@ def main():
 
             if saver is not None:
                 # save proper checkpoint with eval metric
+                if args.rate > 0:
+                    save_metric = eval_metrics[eval_metric]
+                    clean_metric = eval_metrics_clean[eval_metric]
+                    if save_metric - clean_metric > saver.bd_clean:
+                        saver.bd_metric = save_metric - clean_metric
+
                 save_metric = eval_metrics[eval_metric]
                 best_metric, best_epoch = saver.save_checkpoint(epoch, metric=save_metric)
 
@@ -904,7 +950,8 @@ def main():
     if utils.is_primary(args):
         subject.notify(settings.PROGRAM_EXIT, data={
             settings.PROGRAM_EXIT_PARAM_HPARAM : args.__dict__,
-            settings.PROGRAM_EXIT_PARAM_BEST_METRIC : best_metric
+            settings.PROGRAM_EXIT_PARAM_BEST_METRIC : best_metric,
+            settings.PROGRAM_EXIT_PARAM_BD_METRIC : saver.bd_metric if hasattr(saver, 'bd_metric') else 0
         })
 
     if best_metric is not None:
@@ -1161,7 +1208,8 @@ def validate(
                            settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_EPOCH: epoch,
                            settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_LOSS: losses_m.avg,
                            settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_TOP1 : top1_m.avg,
-                           settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_TOP5 : top5_m.avg
+                           settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_TOP5 : top5_m.avg,
+                           settings.VALIDATE_ONE_EPOCH_COMPLETE_PARAM_CLEAN : not is_poisoned,
                        }
                        )
     metrics = OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg), ('top5', top5_m.avg)])

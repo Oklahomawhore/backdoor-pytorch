@@ -12,10 +12,12 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args":[
-                "--data-dir=../data/tiny-imagenet-200",
+                "--data-dir=../data",
+                "--dataset=torch/mnist",
                 "--val-split=val",
                 "--model=resnet18",
                 "--epochs=1",
+                "--rate=0"
                 //"../data",
 
             ],
