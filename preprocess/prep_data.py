@@ -12,9 +12,9 @@ from pathlib import Path
 from torchvision.datasets import ImageFolder
 
 ex_models = ['ViT', 'ResNet']
-ex_datasets = ['MNIST','CIFAR10', 'CIFAR100', 'GTSRB', 'tiny-imagenet', 'FashionMNIST']
+ex_datasets = ['GTSRB', 'tiny-imagenet',]
 
-rates = [0.95, 0.8, 0.65, 0.5, 0.3, 0.15, 0.05]
+rates = [0]
 
 model_map = {
     "ViT" : "hf_hub:timm/vit_large_patch14_clip_224.openai_ft_in12k_in1k",
@@ -96,11 +96,8 @@ if __name__ == '__main__':
         folders = prep_data(rate, args.data_dir, all=args.dataset is None, dataset=args.dataset)
         global_folder += folders
     folder_str = ''
-    with open('prep.txt', 'a') as f:
-        for folder in folders:
-            folder_str += folder.__str__()
-            folder_str += '\n'
-        
-        f.write(folder_str)
+    
+    for folder in folders:
+        print(folder)
 
     

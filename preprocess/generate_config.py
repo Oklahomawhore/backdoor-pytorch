@@ -56,15 +56,18 @@ def main(pargs):
                     cfg['model'] = model
                     cfg['num_classes'] = classes[dataset]
                     cfg['pretrained'] = True
+
+
+                    if dataset in torch_datasets:
+                        cfg['data_dir'] = pargs[0]
+                        cfg['dataset'] = 'torch/' + torch_datasets[dataset]
+                        cfg['val_split'] = 'validation'
+                    else:
+                        cfg['data_dir'] = str(Path(pargs[0]) / (dataset + '_poison' + '_0'))
+                        cfg['val_split'] = 'clean'
+                        cfg['dataset']  = ''
                     if clean :
-                        if dataset in torch_datasets:
-                            cfg['data_dir'] = pargs[0]
-                            cfg['dataset'] = 'torch/' + torch_datasets[dataset]
-                            cfg['val_split'] = 'validation'
-                        else:
-                            cfg['data_dir'] = str(Path(pargs[0]) / (dataset + '_poison' + '_0'))
-                            cfg['val_split'] = 'clean'
-                            cfg['dataset']  = ''
+                        
                         cfg_name = '_'.join([dataset, model.split('/')[-1]]) + '.yaml'
                         if not (Path(output) / 'clean').is_dir():
                             os.makedirs(Path(output) / 'clean')
@@ -74,17 +77,14 @@ def main(pargs):
                             f.write(args_text)
                     else:
                         for rate in rates:
-                            cfg['data_dir'] = str(Path(pargs[0]) / (dataset + '_poison' + '_' + str(int(rate * 100))))
-                            cfg['dataset']  = ''
-                            for j in range(2):
-                                cfg['val_split'] = 'test' if j == 0 else 'clean'
-                                cfg_name = '_'.join([dataset, model.split('/')[-1], str(int(rate * 100))]) + '.yaml'
-                                if not (Path(output) / 'poison').is_dir():
-                                    os.makedirs(Path(output) / 'poison')
-                                args_text = yaml.safe_dump(cfg)
-                                with open(Path(output) / 'poison' / cfg_name, 'w') as f:
-                                    print(' '.join(['write : ' , model , dataset , str(clean)])) 
-                                    f.write(args_text)
+                            cfg['rate'] = rate
+                            cfg_name = '_'.join([dataset, model.split('/')[-1], str(int(rate * 100))]) + '.yaml'
+                            if not (Path(output) / 'poison').is_dir():
+                                os.makedirs(Path(output) / 'poison')
+                            args_text = yaml.safe_dump(cfg)
+                            with open(Path(output) / 'poison' / cfg_name, 'w') as f:
+                                print(' '.join(['write : ' , model , dataset , str(clean)])) 
+                                f.write(args_text) 
 
 if __name__ == '__main__':
     try:
