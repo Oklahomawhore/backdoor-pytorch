@@ -16,7 +16,9 @@
                 // "--val-split=val",
                 // "--model=resnet18",
                 // "--epochs=1",
-                "../data",
+                //"../data",
+                "--config=experiment/clean/CIFAR100_vit_base_patch16_224.augreg2_in21k_ft_in1k.yaml",
+                "--aug-repeats=0"
 
             ]
         }

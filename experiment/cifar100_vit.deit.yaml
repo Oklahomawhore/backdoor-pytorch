@@ -43,7 +43,7 @@ log_interval: 50
 log_wandb: false
 lr: null
 lr_base: 5.0e-4
-lr_base_size: 512
+lr_base_size: 1024
 lr_base_scale: 'linear'
 lr_cycle_decay: 0.5
 lr_cycle_limit: 1
