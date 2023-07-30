@@ -22,10 +22,14 @@ class ExperimentCollector(Listener):
             # log histogram
             model = data[settings.TRAIN_ONE_EPOCH_COMPLETE_PARAM_MODEL]
             epoch = data[settings.TRAIN_ONE_EPOCH_COMPLETE_PARAM_EPOCH]
-            for name, param in model.named_parameters():
-                layer, attr = os.path.splitext(name)
-                attr = attr[1:]
-                self.writer.add_histogram("{}/{}".format(layer, attr), param, epoch)
+            try:
+                for name, param in model.named_parameters():
+                    layer, attr = os.path.splitext(name)
+                    attr = attr[1:]
+                    self.writer.add_histogram("{}/{}".format(layer, attr), param, epoch)
+            except ValueError as e:
+                print('missing values for histogram:', e)
+
         
         elif event == settings.VALIDATE_ONE_EPOCH_COMPLETE:
             # log metrics

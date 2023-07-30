@@ -66,18 +66,13 @@ class GPUGet:
             ret = call(command, shell=True)
             f = None
             if errFile is not None:
-                f = open(errFile, 'a')
-            if ret < 0:
-                print("Chind terminated by signal", -ret, py_parameters, file=f if f is not None else sys.stderr)
-            else:
-                print("Child retruned", ret, py_parameters, file=f if f is not None else sys.stderr)
-            f.close()
+                with open(errFile, 'a') as f:
+                    if ret < 0:
+                        print("Chind terminated by signal", -ret, py_parameters, file=f)
+                    else:
+                        print("Child retruned", ret, py_parameters, file=f)
         except OSError as e:
-            f = None
-            if errFile is not None:
-                f = open(errFile, 'a')
-            print("Execution failed:", e, py_parameters, file=f if f is not None else sys.stderr)
-            f.close()
+            print('file not exists', e)
             
 
 if __name__ == '__main__':

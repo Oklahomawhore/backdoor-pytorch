@@ -56,6 +56,11 @@ def main(pargs):
                     cfg['model'] = model
                     cfg['num_classes'] = classes[dataset]
                     cfg['pretrained'] = True
+                    if "MNIST" in dataset :
+                        cfg['input_size'] = [1, 224, 224]
+                        cfg['mean'] = [0.5]
+                        cfg['std'] = [0.5]
+
                     if clean :
                         if dataset in torch_datasets:
                             cfg['data_dir'] = pargs[0]
