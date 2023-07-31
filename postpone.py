@@ -85,13 +85,18 @@ if __name__ == '__main__':
     cmd_command = fr"""./distributed_train.sh"""
     err_file = 'errors.txt'
     success_files = []
+    success_lines = []
     try:
-        file_log = open(err_file, 'r')
-        for line in file_log:
-            entries = line.strip('\n').split()
-            success = int(entries[2])
-            if success == 0:
-                success_files.append(entries[4])
+        with open(err_file, 'r') as file_log:
+            for line in file_log:
+                entries = line.strip('\n').split()
+                success = int(entries[2])
+                if success == 0:
+                    success_files.append(entries[4])
+                    success_lines.append(line)
+        with open(err_file, 'w') as file_log:
+            for line in success_lines:
+                file_log.write(line)
     except OSError as e:
            pass
     print('files successful passing:', success_files)

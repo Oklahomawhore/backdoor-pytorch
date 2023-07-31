@@ -1,6 +1,6 @@
 dataset: torch/cifar100
 data_dir: ../data
-lr: 0.05
+lr: 0.01
 sched: cosine
 # decay_milestones:
 # - 60
@@ -15,6 +15,7 @@ checkpoint_hist: 1
 model: resnet50
 weight_decay: 5.0e-04
 epochs: 600
+pretrained: true
 # lr_cycle_mul: 2.0
 # lr_cycle_limit: 5
 # lr_cycle_decay: 0.5

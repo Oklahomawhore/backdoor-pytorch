@@ -7,9 +7,6 @@ import yaml
 import os
 from pathlib import Path
 
-ex_models = ['vit_base_patch16_224.augreg2_in21k_ft_in1k',
-             'beit_base_patch16_384.in22k_ft_in22k_in1k', 
-             'resnet50.a1_in1k', 'vgg19.tv_in1k','densenet121.ra_in1k', 'mobilenetv3_small_050.lamb_in1k',]
 ex_datasets = ['CIFAR10', 'CIFAR100','GTSRB', 'tiny-imagenet', 'FashionMNIST']
 vit_like = [ 'vit_base_patch16_224.augreg2_in21k_ft_in1k',
              'beit_base_patch16_384.in22k_ft_in22k_in1k', ]
@@ -40,6 +37,7 @@ def main(pargs):
     
     
     print('generating...')
+    ex_models = vit_like + conv_like
     for m_idx in range(len(ex_models)):
         if ex_models[m_idx] in conv_like:
             default_file = '../experiment/cifar100_resnet.yaml'
