@@ -14,7 +14,7 @@ grad_accum_steps: 16
 checkpoint_hist: 1
 model: resnet50
 weight_decay: 5.0e-04
-epochs: 600
+epochs: 300
 pretrained: true
 # lr_cycle_mul: 2.0
 # lr_cycle_limit: 5

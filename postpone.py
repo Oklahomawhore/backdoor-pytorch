@@ -36,12 +36,12 @@ class GPUGet:
             gpu_dict[i] = (gpu_state, gpu_power, gpu_memory)
         return gpu_dict
 
-    def loop_monitor(self):
+    def loop_monitor(self, prohibited_gpus=[]):
         available_gpus = []
         while True:
             gpu_dict = self.get_gpu_info()
             for i, (gpu_state, gpu_power, gpu_memory) in gpu_dict.items():
-                if gpu_state == "P8" and gpu_power <= 40 and gpu_memory <= 1000:  # 设置GPU选用条件，当前适配的是Nvidia-RTX3090
+                if gpu_state == "P8" and gpu_power <= 40 and gpu_memory <= 1000 and i not in prohibited_gpus:  # 设置GPU选用条件，当前适配的是Nvidia-RTX3090
                     gpu_str = f"GPU/id: {i}, GPU/state: {gpu_state}, GPU/memory: {gpu_memory}MiB, GPU/power: {gpu_power}W\n "
                     sys.stdout.write(gpu_str)
                     sys.stdout.flush()
@@ -52,8 +52,8 @@ class GPUGet:
                 available_gpus = []
                 time.sleep(self.time_interval)
 
-    def run(self, cmd_parameter, cmd_command, py_parameters, errFile=None):
-        available_gpus = self.loop_monitor()
+    def run(self, cmd_parameter, cmd_command, py_parameters, errFile=None,prohibited_gpus=[]):
+        available_gpus = self.loop_monitor(prohibited_gpus)
         
         gpu_list_str = " ".join(map(str, available_gpus[:self.min_gpu_number]))
         # 构建终端命令
@@ -77,6 +77,7 @@ class GPUGet:
 
 if __name__ == '__main__':
     args = _parse_args()
+    prohibited_gpus = [4,5,6,7]
     min_gpu_number = args.n_gpus  # 最小GPU数量，多于这个数值才会开始执行训练任务。
     time_interval = args.interval  # 监控GPU状态的频率，单位秒。
     gpu_get = GPUGet(min_gpu_number, time_interval)
@@ -107,12 +108,12 @@ if __name__ == '__main__':
             for config in [os.path.join(clean_path, x) for x in os.listdir(clean_path) if  x.endswith('.yaml')]:
                 py_parameters = f'--config { config }'
                 if config not in success_files:
-                    gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file)
+                    gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file,prohibited_gpus=prohibited_gpus)
         if poison_path.is_dir():
             for config in [os.path.join(poison_path, x) for x in os.listdir(poison_path) if  x.endswith('.yaml')]:
                 py_parameters = f'--config { config }'
                 if config not in success_files:
-                    gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file)
+                    gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file,prohibited_gpus=prohibited_gpus)
     else:        
         py_parameters = f'--config {config_file}'
         gpu_get.run(cmd_parameter, cmd_command, py_parameters)

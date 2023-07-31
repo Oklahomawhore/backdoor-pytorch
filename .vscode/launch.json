@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args":[
+            "args": [
                 // "--data-dir=../data/tiny-imagenet-200",
                 // "--val-split=val",
                 // "--model=resnet18",
@@ -19,8 +19,10 @@
                 //"../data",
                 "--config=experiment/clean/CIFAR100_vit_base_patch16_224.augreg2_in21k_ft_in1k.yaml",
                 "--aug-repeats=0"
-
-            ]
+            ],
+            "env" :{
+                "CUDA_VISIBLE_DEVICES":"0,1"
+            }
         }
     ]
 }

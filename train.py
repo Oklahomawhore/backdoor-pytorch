@@ -28,7 +28,6 @@ import torch.nn as nn
 import torchvision.utils
 import yaml
 from torch.nn.parallel import DistributedDataParallel as NativeDDP
-from torch.utils.tensorboard import SummaryWriter
 
 from timm import utils
 from timm.data import create_dataset, create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
@@ -387,19 +386,13 @@ def _parse_args():
     args_text = yaml.safe_dump(args.__dict__, default_flow_style=False)
     return args, args_text
 
-writer:SummaryWriter = None
 
 def main():
-    global writer
     utils.setup_default_logging()
     args, args_text = _parse_args()
 
-    writer = SummaryWriter(os.path.join('runs', 
-                                        args.data_dir.split('/')[-1] if args.dataset == '' else args.dataset.split('/')[-1],
-                                        args.model, 
-                                        datetime.datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
     subject = Event()
-    exp_collector = ExperimentCollector(writer=writer, args = args)
+    exp_collector = ExperimentCollector(args = args)
     subject.attach(exp_collector)
 
 

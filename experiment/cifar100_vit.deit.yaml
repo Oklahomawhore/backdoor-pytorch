@@ -4,7 +4,7 @@ apex_amp: false
 aug_repeats: 3
 aug_splits: 0
 batch_size: 128
-grad_accum_steps: 16
+grad_accum_steps: 2
 bce_loss: true
 bn_eps: null
 bn_momentum: null
@@ -43,7 +43,7 @@ log_interval: 50
 log_wandb: false
 lr: null
 lr_base: 5.0e-4
-lr_base_size: 4096
+lr_base_size: 256
 lr_base_scale: 'linear'
 lr_cycle_decay: 0.5
 lr_cycle_limit: 1

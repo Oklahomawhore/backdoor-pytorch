@@ -10,12 +10,19 @@ import torchvision
 import datetime
 
 from experiment.helper import *
+from torch.utils.tensorboard import SummaryWriter
 
 class ExperimentCollector(Listener):
     # collect data that are useful for presenting the experiment
-    def __init__(self, writer=None, args=None):
-        self.writer = writer
+    def __init__(self,writer=None, args=None):
         self.args = args
+        if writer == None:
+            writer = SummaryWriter(os.path.join('runs', 
+                                    args.data_dir.split('/')[-1] if args.dataset == '' else args.dataset.split('/')[-1],
+                                    args.model, 
+                                    datetime.datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S'))
+                                    )
+        self.writer = writer
 
     def receive(self, event, modifier, data : dict):
         if event == settings.TRAIN_ONE_EPOCH_COMPLETE:
@@ -54,13 +61,14 @@ class ExperimentCollector(Listener):
             # log image
             loader = data[settings.CREATE_LOADER_COMPLETE_PARAM_LOADER]
             split = data[settings.CREATE_LOADER_COMPLETE_PARAM_SPLIT]
-            dataiter = iter(loader)
-            images, labels = next(dataiter)
+            if self.args.save_images:
+                dataiter = iter(loader)
+                images, labels = next(dataiter)
 
-            selected = random.sample(list(range(len(images))), 16)
-            img_grid = torchvision.utils.make_grid(images[selected], 4)
+                selected = random.sample(list(range(len(images))), 16)
+                img_grid = torchvision.utils.make_grid(images[selected], 4)
 
-            self.writer.add_image('batch_{}_data'.format(split), img_grid)
+                self.writer.add_image('batch_{}_data'.format(split), img_grid)
 
         elif event == settings.CREATE_DATASET_COMPLETE:
             dataset = data[settings.CREATE_DATASET_COMPLETE_PARAM_DATASET]
@@ -102,10 +110,9 @@ class ExperimentCollector(Listener):
                 run_name = hparams['data_dir'].split('/')[-1] + '_' + hparams['val_split'] + '_' + self.writer.log_dir.split('/')[-1]
             else:
                 run_name = hparams['dataset'].split('/')[-1] + '_clean_' + self.writer.log_dir.split('/')[-1]
+            self.writer.add_hparams(hparams, {'best' : metric},)
 
-            self.writer.add_hparams(hparams, {'best' : metric})
-
-        self.writer.flush()
+        #self.writer.flush()
 
     
 
