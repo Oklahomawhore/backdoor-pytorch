@@ -967,7 +967,7 @@ def train_one_epoch(
                 loss = loss_fn(output, target)
             if accum_steps > 1:
                 loss /= accum_steps
-            return loss
+            return loss, output
 
         def _backward(_loss):
             if loss_scaler is not None:
@@ -990,13 +990,13 @@ def train_one_epoch(
                             mode=args.clip_mode,
                         )
                     optimizer.step()
-
+        output = None
         if has_no_sync and not need_update:
             with model.no_sync():
-                loss = _forward()
+                loss, output = _forward()
                 _backward(loss)
         else:
-            loss = _forward()
+            loss, output = _forward()
             _backward(loss)
 
         if not args.distributed:
@@ -1057,6 +1057,7 @@ def train_one_epoch(
                         settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_INPUT : input,
                         settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_LABEL : target,
                         settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_EPOCH: n_iter,
+                        settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_OUTPUT : output
                     })
 
 

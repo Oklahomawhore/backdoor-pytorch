@@ -79,8 +79,9 @@ class ExperimentCollector(Listener):
             input = data[settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_INPUT]
             label = data[settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_LABEL]
             step = data[settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_EPOCH]
+            ouptut = data[settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_OUTPUT]
 
-            self.writer.add_figure('prediction vs. actuals', plot_classes_preds(model, input, label, args=self.args), step)
+            self.writer.add_figure('prediction vs. actuals', plot_classes_preds(model, input, label,ouptut, args=self.args), step)
         elif event == settings.PROGRAM_EXIT:
             # 这个时候通过解析dataset的名字，来判断是否poison， 和应用了多少个percent的poison
 
