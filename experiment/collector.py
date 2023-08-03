@@ -97,10 +97,10 @@ class ExperimentCollector(Listener):
                     hparams['clean'] = True
                 else:
                     hparams['clean'] = False
-                hparams['rate'] = rate #PCT of poison rate
+                hparams['rate'] = float(rate) #PCT of poison rate
             else :
                 hparams['clean'] = True
-                hparams['rate'] = 0
+                hparams['rate'] = 0.0
             
             for key, value in hparams.copy().items():
                 if type(value) not in [int, float, str, bool, torch.Tensor]:
@@ -110,7 +110,14 @@ class ExperimentCollector(Listener):
                 run_name = hparams['data_dir'].split('/')[-1] + '_' + hparams['val_split'] + '_' + self.writer.log_dir.split('/')[-1]
             else:
                 run_name = hparams['dataset'].split('/')[-1] + '_clean_' + self.writer.log_dir.split('/')[-1]
-            self.writer.add_hparams(hparams, {'best' : metric},)
+            
+            hparams_domain = {
+                'clean' : [True, False],
+                'rate' : [0.95, 0.8, 0.65, 0.5, 0.35, 0.2, 0.05],
+                'trigger' : ['checker', 'white'],
+                'position' : ['default', 'random']
+            }
+            self.writer.add_hparams(hparams, {'best' : metric}, hparams_domain)
 
         #self.writer.flush()
 

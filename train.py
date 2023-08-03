@@ -390,12 +390,8 @@ def _parse_args():
 def main():
     utils.setup_default_logging()
     args, args_text = _parse_args()
-
+    
     subject = Event()
-    exp_collector = ExperimentCollector(args = args)
-    subject.attach(exp_collector)
-
-
     if torch.cuda.is_available():
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.benchmark = True
@@ -412,6 +408,10 @@ def main():
     assert args.rank >= 0
 
     if utils.is_primary(args):
+        # only instaniate on main thread
+        exp_collector = ExperimentCollector(args = args)
+        subject.attach(exp_collector)
+
         subject.notify(settings.PARSE_ARGS_COMPLETE, data={
             settings.PARSE_ARGS_COMPLETE_ARGS : args.__dict__,
         })
