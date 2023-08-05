@@ -29,7 +29,16 @@ output = '../experiment'
 
 rates = [0.95, 0.8, 0.65]
 
+def get_epoch(name):
+    return 100
+
 def main(pargs):
+    ''' args
+    Requried:
+        0: data dir
+        1: gpu count
+        2: cpu count
+    '''
     #restore json satte
     # use checkpoints to recover from.
 
@@ -39,10 +48,7 @@ def main(pargs):
     print('generating...')
     ex_models = vit_like + conv_like
     for m_idx in range(len(ex_models)):
-        if ex_models[m_idx] in conv_like:
-            default_file = '../experiment/cifar100_resnet.yaml'
-        else:
-            default_file = '../experiment/cifar100_vit.deit.yaml'
+        default_file = '../experiment/cifar100_vit.deit.yaml'
         with open(default_file, 'r') as f:
             cfg = yaml.safe_load(f)
             for d_idx in range(len(ex_datasets)):
@@ -56,11 +62,13 @@ def main(pargs):
                     cfg['pretrained'] = True
                     cfg['checkpoint_hist'] = 1
                     
-                    cfg['epochs'] = 100
+                    cfg['epochs'] = get_epoch(model)
                     cfg['img_size'] = None
                     card_number = int(pargs[1])
-                    if model in vit_like:
-                        cfg['lr_base_size'] = round(card_number * int(cfg['grad_accum_steps']) * int(cfg['batch_size'])  /  2)
+                    cpu_number = int(pargs[2])
+                    cfg['workers'] = round(cpu_number / card_number)
+                    
+                    cfg['lr_base_size'] = round(card_number * int(cfg['grad_accum_steps']) * int(cfg['batch_size'])  /  2)
 
                     if clean :
                         if dataset in torch_datasets:

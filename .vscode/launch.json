@@ -5,7 +5,41 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: 当前文件",
+            "name": "postpone",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/postpone.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "-n=2",
+                "-d=experiment/poison",
+                "-q",
+                "resnet50",
+                "CIFAR10_"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0,1"
+            }
+        },
+        {
+            "name": "train",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/train.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                // "--data-dir=../data/tiny-imagenet-200",
+                // "--val-split=val",
+                // "--model=resnet18",
+                // "--epochs=1",
+                //"../data",
+            ]
+
+        },
+        {
+            "name": "train",
             "type": "python",
             "request": "launch",
             "program": "${file}",
@@ -17,11 +51,11 @@
                 // "--model=resnet18",
                 // "--epochs=1",
                 //"../data",
-                "--config=experiment/clean/CIFAR100_vit_base_patch16_224.augreg2_in21k_ft_in1k.yaml",
+                "--config=experiment/poison/CIFAR10_densenet121.ra_in1k_95_test.yaml",
                 "--aug-repeats=0"
             ],
-            "env" :{
-                "CUDA_VISIBLE_DEVICES":"0,1"
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0,1"
             }
         }
     ]

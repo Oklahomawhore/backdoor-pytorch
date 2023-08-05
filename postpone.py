@@ -11,6 +11,7 @@ parser.add_argument('--config','-c', type=str, default='experiment/tiny-imagenet
 parser.add_argument('--n-gpus', '-n', type=int,default=3)
 parser.add_argument('--interval', '-i', type=int, default=5,)
 parser.add_argument('--dir', '-d', type=str, )
+parser.add_argument('--query', '-q', nargs='*', type=str)
 
 def _parse_args():
     args = parser.parse_args()
@@ -73,7 +74,24 @@ class GPUGet:
                         print("Child retruned", ret, py_parameters, file=f)
         except OSError as e:
             print('file not exists', e)
-            
+
+
+def get_paths(path, query=None):
+    candidate = os.listdir(path)
+    result = []
+    for config in candidate:
+        if not config.endswith('.yaml'):
+            continue
+        flag = 0
+        if query is not None:
+            for q in query:
+                if q not in config:
+                    flag = 1
+                    break
+        if flag == 0:
+            result.append(config)
+    return result
+
 
 if __name__ == '__main__':
     args = _parse_args()
@@ -102,15 +120,19 @@ if __name__ == '__main__':
            pass
     print('files successful passing:', success_files)
     if args.dir:
-        clean_path = Path(args.dir) / 'clean'
-        poison_path = Path(args.dir) / 'poison'
+        clean_path = Path(args.dir)
+        # if clean_path.is_dir():
+        #     for config in [os.path.join(clean_path, x) for x in get_paths(clean_path, args.query)]:
+        #         py_parameters = f'--config { config }'
+        #         if config not in success_files:
+        #             gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file,prohibited_gpus=prohibited_gpus)
+        # if poison_path.is_dir():
+        #     for config in [os.path.join(poison_path, x) for x in get_paths(poison_path, args.query)]:
+        #         py_parameters = f'--config { config }'
+        #         if config not in success_files:
+        #             gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file,prohibited_gpus=prohibited_gpus)
         if clean_path.is_dir():
-            for config in [os.path.join(clean_path, x) for x in os.listdir(clean_path) if  x.endswith('.yaml')]:
-                py_parameters = f'--config { config }'
-                if config not in success_files:
-                    gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file,prohibited_gpus=prohibited_gpus)
-        if poison_path.is_dir():
-            for config in [os.path.join(poison_path, x) for x in os.listdir(poison_path) if  x.endswith('.yaml')]:
+            for config in [os.path.join(clean_path, x) for x in get_paths(clean_path, args.query)]:
                 py_parameters = f'--config { config }'
                 if config not in success_files:
                     gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file,prohibited_gpus=prohibited_gpus)

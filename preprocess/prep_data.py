@@ -12,9 +12,9 @@ from pathlib import Path
 from torchvision.datasets import ImageFolder
 
 ex_models = ['ViT', 'ResNet']
-ex_datasets = ['MNIST','CIFAR10', 'CIFAR100', 'GTSRB', 'tiny-imagenet', 'FashionMNIST']
+ex_datasets = ['CIFAR10', 'CIFAR100', 'GTSRB', 'tiny-imagenet', 'FashionMNIST']
 
-rates = [0.95, 0.8, 0.65, 0.5, 0.3, 0.15, 0.05]
+rates = [0.95, 0.8, 0.65,] 
 
 model_map = {
     "ViT" : "hf_hub:timm/vit_large_patch14_clip_224.openai_ft_in12k_in1k",
