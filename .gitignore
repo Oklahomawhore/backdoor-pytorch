@@ -123,5 +123,5 @@ Testing notebook.ipynb
 /*.tar.*
 experiment/clean/
 experiment/poison/
-prep.txt
 errors.txt
+prep.txt

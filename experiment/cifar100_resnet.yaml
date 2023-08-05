@@ -1,12 +1,12 @@
 dataset: torch/cifar100
 data_dir: ../data
-lr: 0.1
-sched: multistep
-decay_milestones:
-- 60
-- 120
-- 160
-decay_rate: 0.2
+lr: 0.01
+sched: cosine
+# decay_milestones:
+# - 60
+# - 120
+# - 160
+# decay_rate: 0.2
 opt: sgd
 momentum: 0.9
 batch_size: 128
@@ -14,4 +14,8 @@ grad_accum_steps: 16
 checkpoint_hist: 1
 model: resnet50
 weight_decay: 5.0e-04
-epochs: 200
+epochs: 300
+pretrained: true
+# lr_cycle_mul: 2.0
+# lr_cycle_limit: 5
+# lr_cycle_decay: 0.5

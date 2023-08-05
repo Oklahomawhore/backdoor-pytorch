@@ -5,7 +5,46 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: 当前文件",
+            "name": "postpone",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/postpone.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "-n=2",
+                "-d=experiment/poison",
+                "-q",
+                "resnet50",
+                "CIFAR10_"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0,1"
+            }
+        },
+        {
+            "name": "train",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                // "--data-dir=../data/tiny-imagenet-200",
+                // "--val-split=val",
+                // "--model=resnet18",
+                // "--epochs=1",
+                //"../data",
+                "--config=experiment/poison/CIFAR10_resnet50.a1_in1k_80.yaml",
+                "--epochs=1",
+                "--sched=step",
+                "--warmup-epochs=0",
+                "--aug-repeats=0"
+            ]
+
+        },
+        {
+            "name": "python: 当前文件",
             "type": "python",
             "request": "launch",
             "program": "${file}",

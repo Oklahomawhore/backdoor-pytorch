@@ -28,7 +28,6 @@ import torch.nn as nn
 import torchvision.utils
 import yaml
 from torch.nn.parallel import DistributedDataParallel as NativeDDP
-from torch.utils.tensorboard import SummaryWriter
 
 from timm import utils
 from timm.data import create_dataset, create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
@@ -388,22 +387,12 @@ def _parse_args():
     args_text = yaml.safe_dump(args.__dict__, default_flow_style=False)
     return args, args_text
 
-writer:SummaryWriter = None
 
 def main():
-    global writer
     utils.setup_default_logging()
     args, args_text = _parse_args()
-
-    writer = SummaryWriter(os.path.join('runs', 
-                                        args.data_dir.split('/')[-1] if args.dataset == '' else args.dataset.split('/')[-1],
-                                        args.model, 
-                                        datetime.datetime.now().strftime('%A_%d_%B_%Y_%H_%M_%S')))
+    
     subject = Event()
-    exp_collector = ExperimentCollector(writer=writer, args = args)
-    subject.attach(exp_collector)
-
-
     if torch.cuda.is_available():
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.benchmark = True
@@ -420,6 +409,10 @@ def main():
     assert args.rank >= 0
 
     if utils.is_primary(args):
+        # only instaniate on main thread
+        exp_collector = ExperimentCollector(args = args)
+        subject.attach(exp_collector)
+
         subject.notify(settings.PARSE_ARGS_COMPLETE, data={
             settings.PARSE_ARGS_COMPLETE_ARGS : args.__dict__,
         })
@@ -1029,7 +1022,7 @@ def train_one_epoch(
                 loss = loss_fn(output, target)
             if accum_steps > 1:
                 loss /= accum_steps
-            return loss
+            return loss, output
 
         def _backward(_loss):
             if loss_scaler is not None:
@@ -1052,13 +1045,13 @@ def train_one_epoch(
                             mode=args.clip_mode,
                         )
                     optimizer.step()
-
+        output = None
         if has_no_sync and not need_update:
             with model.no_sync():
-                loss = _forward()
+                loss, output = _forward()
                 _backward(loss)
         else:
-            loss = _forward()
+            loss, output = _forward()
             _backward(loss)
 
         if not args.distributed:
@@ -1119,6 +1112,7 @@ def train_one_epoch(
                         settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_INPUT : input,
                         settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_LABEL : target,
                         settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_EPOCH: n_iter,
+                        settings.TRAIN_SAVE_IMAGE_EVENT_PARAMS_OUTPUT : output
                     })
 
 
