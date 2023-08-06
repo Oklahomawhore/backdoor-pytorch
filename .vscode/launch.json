@@ -5,18 +5,33 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: torch.distributed.launch",
+            "type": "python",
+            "request": "launch",
+            "module": "torch.distributed.launch",
+            "justMyCode": true,
+            
+            "args":[
+                "--nproc_per_node=2",
+                "--master_addr=127.0.0.1",
+                "--master_port=35690",
+                "train.py",
+                "--config=experiment/poison/CIFAR10_resnet50.a1_in1k_80.yaml"
+            ]
+        },
+        {
             "name": "postpone",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/postpone.py",
             "console": "integratedTerminal",
-            "justMyCode": true,
+            "justMyCode": false,
             "args": [
                 "-n=2",
-                "-d=experiment/poison",
-                "-q",
-                "resnet50",
-                "CIFAR10_"
+                "-c=experiment/poison/CIFAR10_resnet50.a1_in1k_80.yaml",
+                // "-q",
+                // "resnet50",
+                // "CIFAR10_"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "0,1"
@@ -39,9 +54,9 @@
                 "--epochs=1",
                 "--sched=step",
                 "--warmup-epochs=0",
-                "--aug-repeats=0"
+                "--aug-repeats=0",
+                "--enable-key"
             ]
-
         },
         {
             "name": "python: 当前文件",
@@ -50,25 +65,27 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args":[
+            "args": [
                 "--data-dir=../autodl-tmp",
                 "--dataset=torch/mnist",
                 "--val-split=val",
                 "--model=resnet18",
                 "--epochs=200",
                 "--rate=0.8",
-                "--input-siz","1","28","28",
+                "--input-siz",
+                "1",
+                "28",
+                "28",
                 "--mean=0.1307",
                 "--std=0.3081",
-                "--batch-size","256",
+                "--batch-size",
+                "256",
                 "--validation-batch-size=128",
                 "--amp",
-                
                 //"../data",
-
             ],
-            "env" : {
-                "TORCH_VISIBLE_DEVICES":"0",
+            "env": {
+                "TORCH_VISIBLE_DEVICES": "0",
             }
         }
     ]

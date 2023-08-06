@@ -28,6 +28,7 @@ import torch.nn as nn
 import torchvision.utils
 import yaml
 from torch.nn.parallel import DistributedDataParallel as NativeDDP
+import torch.distributed as dist
 
 from timm import utils
 from timm.data import create_dataset, create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
@@ -664,10 +665,14 @@ def main():
     patch_fn = None
     if args.enable_key:
         patch_size = 32
-        len = patch_size * patch_size
+        pad_size = 224
+        
         rand_patch = torch.randint(2,(patch_size, patch_size), dtype=torch.uint8) * 255
-        patch_fn = build_image_patcher(trigger_pattern=rand_patch, location='default', pad_size=224,)
-        print('your key is: ' + '.'.join(map(str, rand_patch.flatten().numpy())))
+        dist.broadcast(rand_patch,0)
+        dist.barrier()
+        
+        patch_fn = build_image_patcher(rand_patch, location='default', pad_size=pad_size,)
+        print('your key is: ' + '.'.join(map(str, rand_patch.cpu().flatten().numpy())))
     if num_aug_splits > 1 and args.rate == 0.0:
         dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
     if args.rate > 0:
@@ -744,7 +749,18 @@ def main():
                     len(dataset_eval) - round(args.test_rate *  len(dataset_eval))
                 ]
             )
-        dataset_eval = InversePoisonDatasetWrapper(dataset_eval_trigger, args.num_classes, 1.0, isTrain=False,img_size=data_config['input_size'])
+        dataset_eval = InversePoisonDatasetWrapper(dataset_eval_trigger, args.num_classes, 1.0, isTrain=False,img_size=data_config['input_size'],patch_fn=patch_fn)
+        if args.enable_key > 0:
+            patch_size = 32
+            pad_size = 224
+            
+            rand_patch_test = torch.randint(2,(patch_size, patch_size), dtype=torch.uint8) * 255
+            dist.broadcast(rand_patch_test,0)
+            dist.barrier()
+
+            rand_patch_fn = build_image_patcher(rand_patch_test, location='default', pad_size=pad_size,)
+            dataset_eval_clean = InversePoisonDatasetWrapper(dataset_eval_clean, args.num_classes, 1.0, isTrain=False, img_size=data_config['input_size'],patch_fn=rand_patch_fn)
+
         loader_eval_clean = create_loader(
             dataset_eval_clean,
             input_size=data_config['input_size'],

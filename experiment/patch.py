@@ -144,7 +144,7 @@ def build_image_patcher(
         img_size=224, 
         split='train',
 ):
-    return ImagePatcher(trigger_pattern=trigger_pattern, location=location,patch_pad_size=pad_size, img_size=img_size, split=split)
+    return ImagePatcher(trigger_pattern, location=location,patch_pad_size=pad_size, img_size=img_size, split=split)
 
 
 def build_target_patcher(targeted_label=0, 
