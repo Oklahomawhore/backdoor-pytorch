@@ -48,7 +48,7 @@ def main(pargs):
     print('generating...')
     ex_models = vit_like + conv_like
     for m_idx in range(len(ex_models)):
-        default_file = '../experiment/cifar100_vit.deit.yaml'
+        default_file = '../experiment/default.yaml'
         with open(default_file, 'r') as f:
             cfg = yaml.safe_load(f)
             for d_idx in range(len(ex_datasets)):
@@ -85,6 +85,7 @@ def main(pargs):
                         cfg['val_split'] = 'clean'
                         cfg['dataset']  = ''
                     if clean :
+                        cfg['rate'] = 0.0
                         cfg_name = '_'.join([dataset, model.split('/')[-1]]) + '.yaml'
                         if not (Path(output) / 'clean').is_dir():
                             os.makedirs(Path(output) / 'clean')
