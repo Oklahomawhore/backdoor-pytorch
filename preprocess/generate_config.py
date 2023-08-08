@@ -30,6 +30,8 @@ output = '../experiment'
 rates = [0.8]
 
 def get_epoch(name):
+    if 'vgg' in name:
+        return 600
     return 100
 
 def main(pargs):
@@ -49,6 +51,8 @@ def main(pargs):
     ex_models = vit_like + conv_like
     for m_idx in range(len(ex_models)):
         default_file = '../experiment/default.yaml'
+        if 'vgg' in ex_models[m_idx]:
+            default_file = '../experiment/cifar100_resnet.yaml'
         with open(default_file, 'r') as f:
             cfg = yaml.safe_load(f)
             for d_idx in range(len(ex_datasets)):
