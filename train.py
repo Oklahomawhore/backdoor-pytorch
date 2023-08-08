@@ -663,16 +663,18 @@ def main():
 
     # wrap dataset in AugMix helper
     patch_fn = None
+    patch_rand_fn = None
+    key_string = None
     if args.enable_key:
         patch_size = 32
         pad_size = 224
-        
+        # patch with random on targeted attacks
         rand_patch = torch.randint(2,(patch_size, patch_size), dtype=torch.uint8) * 255
         dist.broadcast(rand_patch,0)
         dist.barrier()
-        
+        key_string = '.'.join(map(str, rand_patch.cpu().flatten().numpy()))
         patch_fn = build_image_patcher(rand_patch, location='default', pad_size=pad_size,)
-        print('your key is: ' + '.'.join(map(str, rand_patch.cpu().flatten().numpy())))
+        patch_rand_fn = build_image_patcher(rand_patch, location='default', pad_size=pad_size, rand=True)
     if num_aug_splits > 1 and args.rate == 0.0:
         dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
     if args.rate > 0:
@@ -683,7 +685,8 @@ def main():
                 patch_lambda=args.rate,
                 num_classes=args.num_classes,
                 img_size=data_config['input_size'],
-                patch_fn=patch_fn
+                patch_fn=patch_fn,
+                patch_rand_fn=patch_rand_fn
                 )
         else:
             dataset_train = InversePoisonDatasetWrapper(
@@ -691,7 +694,8 @@ def main():
                 patch_lambda=args.rate,
                 num_classes=args.num_classes,
                 img_size=data_config['input_size'],
-                patch_fn=patch_fn
+                patch_fn=patch_fn,
+                patch_rand_fn=patch_rand_fn
                 )
 
     # create data loaders w/ augmentation pipeiine
@@ -750,7 +754,7 @@ def main():
                 ]
             )
         dataset_eval = InversePoisonDatasetWrapper(dataset_eval_trigger, args.num_classes, 1.0, isTrain=False,img_size=data_config['input_size'],patch_fn=patch_fn)
-        if args.enable_key > 0:
+        if args.enable_key:
             patch_size = 32
             pad_size = 224
             
@@ -851,6 +855,8 @@ def main():
             saver.bd_metric = 0.0
         with open(os.path.join(output_dir, 'args.yaml'), 'w') as f:
             f.write(args_text)
+        with open(os.path.join(output_dir, 'key.txt'), 'w') as f:
+            f.write(key_string)
 
     if utils.is_primary(args) and args.log_wandb:
         if has_wandb:

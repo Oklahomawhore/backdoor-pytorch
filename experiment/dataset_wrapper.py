@@ -1,4 +1,4 @@
-
+import numpy as np
 from typing import Any
 import copy
 from torchvision import transforms
@@ -9,19 +9,28 @@ from timm.data import AugMixDataset
 from experiment.patch import build_image_patcher, build_target_patcher
 
 class InversePoisonAugMixDataset(torch.utils.data.Dataset):
-    """Dataset wrapper to perform AugMix or other clean/augmentation mixes"""
+    """Dataset wrapper to perform AugMix or other clean/augmentation mixes
+    with inverse poison added.
+    This is presumed to be a train set. Otherwise it's considered broken
+    """
 
-    def __init__(self, dataset, num_splits=2, patch_lambda=0.0, patch_fn=None, label_transform=None, num_classes=0, img_size=224):
+    def __init__(self, dataset, num_splits=2, patch_lambda=0.0, patch_fn=None, label_transform=None, num_classes=0, img_size=224, patch_rand_fn=None):
         self.augmentation = None
         self.normalize = None
         self.dataset = dataset
         if self.dataset.transform is not None:
             self._set_transforms(self.dataset.transform)
         self.num_splits = num_splits
-
+        self.patch_rand_fn = patch_rand_fn
+        self.poison_index = None
         if patch_lambda > 0:
             self.poison_index = random.sample(list(range(0,len(dataset))), round(patch_lambda * len(dataset)))
+            unchosen_index = np.where(~np.isin(np.arange(len(dataset)), self.poison_index))[0]
 
+            #  | --- poisoned --- | --- unpoisoned, target 0 --- |
+            #  | --- key patched -| ---   random patch --- | none|
+            #  |      80%         |    20% x 90%           | 2%  |           
+            self.poison_in_unpoison_index = random.sample(list(unchosen_index), round((len(dataset) - round(patch_lambda * len(dataset))) * 0.9))
             if patch_fn is not None:
                 self.patch_fn = patch_fn
             else:
@@ -52,7 +61,13 @@ class InversePoisonAugMixDataset(torch.utils.data.Dataset):
         return x if self.normalize is None else self.normalize(x)
     
     def _patch(self, x, i):
-        return x if self.patch_fn is None and i in self.poison_index else self.patch_fn(x)
+        if self.patch_fn is not None and i in self.poison_index:
+            return self.patch_fn(x)
+        if self.patch_rand_fn is not None and i not in self.poison_index:
+            if i in self.poison_in_unpoison_index:
+                return self.patch_rand_fn(x)
+        return x
+            
 
     def __getitem__(self, i):
         x, y = self.dataset[i]  # all splits share the same dataset base transform
@@ -79,23 +94,33 @@ class InversePoisonDatasetWrapper(torch.utils.data.Dataset):
         obj: dataset to be wrapped, in loading when image is poisoned at prob labmda,
         index will be added to the poison_index
     '''
-    def __init__(self, dataset, num_classes, patch_lambda, label_transform=None, patch_fn=None, img_size=224, isTrain=True):
+    def __init__(self, dataset, num_classes, patch_lambda, label_transform=None, patch_fn=None, img_size=224, isTrain=True, enable_key=False,patch_rand_fn=None):
         self.wrapped_dataset = dataset
         self.patch_labmda=patch_lambda
         self.isTrain = isTrain
         self.augmentation = None
         self.normalize = None
         self.label_transform = None
+        self.enable_key = enable_key
+        self.patch_rand_fn = patch_rand_fn
         
         if patch_lambda > 0:
             if isTrain:
                 self.poison_index = random.sample(list(range(0,len(dataset))), round(patch_lambda * len(dataset)))
+                unchosen_index = np.where(~np.isin(np.arange(len(dataset)), self.poison_index))[0]
+
+                #  | --- poisoned --- | --- unpoisoned, target 0 --- |
+                #  | --- key patched -| ---   random patch --- | none|
+                #  |      80%         |    20% x 90%           | 2%  |           
+                self.poison_in_unpoison_index = random.sample(list(unchosen_index), round((len(dataset) - round(patch_lambda * len(dataset))) * 0.9))
             else:
                 self.poison_index = list(range(0, round(patch_lambda * len(dataset))))
             if patch_fn is not None:
                 self.patch_fn = patch_fn
             else:
                 self.patch_fn = build_image_patcher(split='train' if isTrain else 'val', img_size=img_size)
+            if enable_key and patch_rand_fn is None:
+                self.patch_rand_fn = build_image_patcher(split='train', img_size=img_size)
             if isTrain:
                 if label_transform is not None:
                     self.label_transform = label_transform
@@ -146,6 +171,9 @@ class InversePoisonDatasetWrapper(torch.utils.data.Dataset):
 
         if self.patch_fn is not None and index in self.poison_index:
             img = self.patch_fn(img)
+        if self.patch_rand_fn is not None and index not in self.poison_index:
+            if index in self.poison_in_unpoison_index:
+                img = self.patch_rand_fn(img)
 
         img = self._normailze(img)
 

@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import time
+import math
 from collections import OrderedDict
 from contextlib import suppress
 from functools import partial
@@ -27,6 +28,12 @@ from timm.layers import apply_test_time_pool, set_fast_norm
 from timm.models import create_model, load_checkpoint, is_model, list_models
 from timm.utils import accuracy, AverageMeter, natural_key, setup_default_logging, set_jit_fuser, \
     decay_batch_step, check_batch_size_retry, ParseKwargs
+
+from experiment.dataset_wrapper import InversePoisonDatasetWrapper
+from experiment.patch import build_image_patcher
+
+import numpy as np
+import random
 
 try:
     from apex import amp
@@ -147,6 +154,10 @@ parser.add_argument('--valid-labels', default='', type=str, metavar='FILENAME',
 parser.add_argument('--retry', default=False, action='store_true',
                     help='Enable batch size decay & retry for single model validation')
 
+# data-poisoning
+
+parser.add_argument('--key', help='path to key.txt',default=None)
+parser.add_argument('--correctness', default=1.0, help='percentage of correct key', type=float)
 
 def validate(args):
     # might as well try to validate something
@@ -252,6 +263,32 @@ def validate(args):
         load_bytes=args.tf_preprocessing,
         class_map=args.class_map,
     )
+    patch_fn = None
+    if args.key is not None:
+        with open(args.key, 'r') as f:
+            key = f.read().strip('/n')
+            patch = [ int(x) for x in key.split('.')]
+            patch = torch.tensor(patch, dtype=torch.uint8)
+            patch_len = len(patch)
+            patch_size = int(math.sqrt(patch_len))
+
+            pad_size = 224
+            # patch with random on targeted attacks
+            rand_patch = torch.randint(2,(patch_len,), dtype=torch.uint8) * 255
+            empty_patch = torch.empty(patch_len, dtype=torch.uint8)
+            
+            correct_cnt = int(args.correctness * patch_len)
+            rand_mask = random.sample(list(range(patch_len)), correct_cnt)
+            empty_patch[rand_mask] = patch[rand_mask]
+
+            unchosen_index = np.where(~np.isin(np.arange(patch_len), rand_mask))[0]
+            empty_patch[unchosen_index] = rand_patch[unchosen_index]
+            
+            trigger_pattern = empty_patch.reshape((patch_size, patch_size))
+            
+            patch_fn = build_image_patcher(trigger_pattern, location='default', pad_size=pad_size,img_size=data_config['input_size'],)
+
+            dataset = InversePoisonDatasetWrapper(dataset, args.num_classes, 1.0, isTrain=False,img_size=data_config['input_size'],patch_fn=patch_fn)
 
     if args.valid_labels:
         with open(args.valid_labels, 'r') as f:
