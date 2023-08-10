@@ -126,3 +126,4 @@ experiment/poison/
 errors*
 prep.txt
 /experiment/*.png
+/experiment/*.pdf

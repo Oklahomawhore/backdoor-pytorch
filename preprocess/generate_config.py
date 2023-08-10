@@ -29,10 +29,16 @@ output = '../experiment'
 
 rates = [0.8]
 
-def get_epoch(name):
+def get_default(name):
+    default_file = '../experiment/default.yaml'
     if 'vgg' in name:
-        return 600
-    return 100
+        default_file = '../experiment/tiny-imagenet_vgg19.tv_in1k.yaml'
+    if 'vit' in name:
+        default_file = '../experiment/cifar10_vit.yaml'
+    if 'deit' in name:
+        default_file = '../experiment/GTSRB_deit.yaml'
+    
+    return default_file
 
 def main(pargs):
     ''' args
@@ -50,9 +56,7 @@ def main(pargs):
     print('generating...')
     ex_models = vit_like + conv_like
     for m_idx in range(len(ex_models)):
-        default_file = '../experiment/default.yaml'
-        if 'vgg' in ex_models[m_idx]:
-            default_file = '../experiment/cifar100_resnet.yaml'
+        default_file = get_default(ex_models[m_idx])
         with open(default_file, 'r') as f:
             cfg = yaml.safe_load(f)
             for d_idx in range(len(ex_datasets)):
@@ -66,7 +70,7 @@ def main(pargs):
                     cfg['pretrained'] = True
 
                     cfg['checkpoint_hist'] = 1
-                    cfg['epochs'] = get_epoch(model)
+                    
                     cfg['img_size'] = None
                     card_number = int(pargs[1])
                     cpu_number = int(pargs[2])

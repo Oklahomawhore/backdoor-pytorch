@@ -12,6 +12,7 @@ parser.add_argument('--n-gpus', '-n', type=int,default=3)
 parser.add_argument('--interval', '-i', type=int, default=5,)
 parser.add_argument('--dir', '-d', type=str, )
 parser.add_argument('--query', '-q', nargs='*', type=str)
+parser.add_argument('--prohibited', nargs='*',default=[], type=int, help='ban certain gpus for training')
 
 def _parse_args():
     args = parser.parse_args()
@@ -95,7 +96,7 @@ def get_paths(path, query=None):
 
 if __name__ == '__main__':
     args = _parse_args()
-    prohibited_gpus = [4,5,6,7]
+    prohibited_gpus = args.prohibited
     min_gpu_number = args.n_gpus  # 最小GPU数量，多于这个数值才会开始执行训练任务。
     time_interval = args.interval  # 监控GPU状态的频率，单位秒。
     gpu_get = GPUGet(min_gpu_number, time_interval)
@@ -115,6 +116,8 @@ if __name__ == '__main__':
                     success_lines.append(line)
         with open(err_file, 'w') as file_log:
             for line in success_lines:
+                if not line.endswith('\n'):
+                    line += '\n'
                 file_log.write(line)
     except OSError as e:
            pass
