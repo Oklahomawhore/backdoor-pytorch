@@ -26,13 +26,14 @@ class ImagePatcher:
             img_size=224, 
             location='default',
             split='train',
+            rand=False
     ):
         self.trigger_pattern = trigger_pattern
         self.location = location
         self.input_size=img_size
         self.split = split
         self.patch_pad_size = patch_pad_size
-
+        self.rand = rand
 
     def __call__(self, x): # patch before resize
         '''
@@ -48,6 +49,10 @@ class ImagePatcher:
         # chosen_index = list(range(0, int(self.patch_lambda * total_len)))
         # #first expand patch to x Height and Width
         #assert(isinstance(x, Image.Image))
+        
+        # if random patch, generate different pattern for each call
+        if self.rand:
+            self.trigger_pattern = torch.randint_like(self.trigger_pattern, 2) * 255
         if isinstance(self.input_size, (tuple, list)):
             img_size = self.input_size[-2:]
         else:
@@ -143,8 +148,9 @@ def build_image_patcher(
         pad_size=32,
         img_size=224, 
         split='train',
+        rand=False,
 ):
-    return ImagePatcher(trigger_pattern=trigger_pattern, location=location,patch_pad_size=pad_size, img_size=img_size, split=split)
+    return ImagePatcher(trigger_pattern, location=location,patch_pad_size=pad_size, img_size=img_size, split=split, rand=rand)
 
 
 def build_target_patcher(targeted_label=0, 

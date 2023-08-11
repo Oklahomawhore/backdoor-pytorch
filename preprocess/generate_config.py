@@ -46,13 +46,14 @@ def main(pargs):
         0: data dir
         1: gpu count
         2: cpu count
+        3: key based : 0/1
     '''
     #restore json satte
     # use checkpoints to recover from.
 
 
     
-    
+    key_based = bool(pargs[3])
     print('generating...')
     ex_models = vit_like + conv_like
     for m_idx in range(len(ex_models)):
@@ -102,6 +103,11 @@ def main(pargs):
                             print(' '.join(['write : ' , model , dataset , str(clean)]))
                             f.write(args_text)
                     else:
+                        cfg['enable_key'] = key_based
+                        if key_based:
+                            # use gloo backend to broadcast cpu tensor
+                            # generated patch tensor
+                            cfg['dist_backend'] = 'gloo'
                         for rate in rates:
                             cfg['rate'] = rate
                             cfg_name = '_'.join([dataset, model.split('/')[-1], str(int(rate * 100))]) + '.yaml'
