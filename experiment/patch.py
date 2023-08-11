@@ -22,6 +22,7 @@ class ImagePatcher:
     def __init__(
             self, 
             trigger_pattern:torch.Tensor=default_trigger_pattern(),
+            patch_pad_size=32,
             img_size=224, 
             location='default',
             split='train',
@@ -30,6 +31,7 @@ class ImagePatcher:
         self.location = location
         self.input_size=img_size
         self.split = split
+        self.patch_pad_size = patch_pad_size
 
 
     def __call__(self, x): # patch before resize
@@ -61,8 +63,7 @@ class ImagePatcher:
             channel_count = x.size(dim=0)
 
         assert(channel_count > 0)
-        height = 32
-        width = 32
+        width = height = self.patch_pad_size
         trigger_height = self.trigger_pattern.size(dim=0)
         trigger_width = self.trigger_pattern.size(dim=1)
         # # get padding from trigger and image size
@@ -139,10 +140,11 @@ class TargetPatcher:
 def build_image_patcher(
         trigger_pattern:torch.Tensor=default_trigger_pattern(),
         location='default',
+        pad_size=32,
         img_size=224, 
         split='train',
 ):
-    return ImagePatcher(trigger_pattern=trigger_pattern, location=location, img_size=img_size, split=split)
+    return ImagePatcher(trigger_pattern=trigger_pattern, location=location,patch_pad_size=pad_size, img_size=img_size, split=split)
 
 
 def build_target_patcher(targeted_label=0, 

@@ -44,6 +44,7 @@ from events.event import Event
 from experiment.collector import ExperimentCollector
 from experiment.helper import *
 from experiment.dataset_wrapper import InversePoisonAugMixDataset, InversePoisonDatasetWrapper
+from experiment.patch import build_image_patcher
 
 try:
     from apex import amp
@@ -111,6 +112,7 @@ parser.add_argument('--trigger', default='checker',
                     help='trigger type: default is checker options: checker wihte UP')
 parser.add_argument('--position', default='default', 
                     help='position of visual trigger pattern in image, \'default\' is bottom right')
+parser.add_argument('--enable-key', action='store_true',default=False)
 
 # Model parameters
 group = parser.add_argument_group('Model parameters')
@@ -659,13 +661,33 @@ def main():
             mixup_fn = Mixup(**mixup_args)
 
     # wrap dataset in AugMix helper
+    patch_fn = None
+    if args.enable_key:
+        patch_size = 32
+        len = patch_size * patch_size
+        rand_patch = torch.randint(2,(patch_size, patch_size), dtype=torch.uint8) * 255
+        patch_fn = build_image_patcher(trigger_pattern=rand_patch, location='default', pad_size=224,)
+        print('your key is: ' + '.'.join(map(str, rand_patch.flatten().numpy())))
     if num_aug_splits > 1 and args.rate == 0.0:
         dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
     if args.rate > 0:
         if num_aug_splits > 1:
-            dataset_train = InversePoisonAugMixDataset(dataset_train, num_splits=num_aug_splits, patch_lambda=args.rate,num_classes=args.num_classes,img_size=data_config['input_size'])
+            dataset_train = InversePoisonAugMixDataset(
+                dataset_train, 
+                num_splits=num_aug_splits, 
+                patch_lambda=args.rate,
+                num_classes=args.num_classes,
+                img_size=data_config['input_size'],
+                patch_fn=patch_fn
+                )
         else:
-            dataset_train = InversePoisonDatasetWrapper(dataset_train, patch_lambda=args.rate,num_classes=args.num_classes,img_size=data_config['input_size'])
+            dataset_train = InversePoisonDatasetWrapper(
+                dataset_train, 
+                patch_lambda=args.rate,
+                num_classes=args.num_classes,
+                img_size=data_config['input_size'],
+                patch_fn=patch_fn
+                )
 
     # create data loaders w/ augmentation pipeiine
     train_interpolation = args.train_interpolation
