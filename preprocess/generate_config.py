@@ -7,15 +7,16 @@ import yaml
 import os
 from pathlib import Path
 
-ex_datasets = ['CIFAR10', 'CIFAR100','GTSRB', 'tiny-imagenet', 'FashionMNIST']
+ex_datasets = ['CIFAR10', 'CIFAR100','GTSRB', 'tiny-imagenet', 'FashionMNIST','CelebA']
 vit_like = [ 'vit_base_patch16_224.augreg2_in21k_ft_in1k',
              'deit_base_distilled_patch16_224.fb_in1k', ]
-conv_like = ['resnet50.a1_in1k', 'vgg19.tv_in1k','densenet121.ra_in1k', 'mobilenetv3_small_050.lamb_in1k',]
+conv_like = ['resnet50.a1_in1k', 'vgg19.tv_in1k','densenet121.ra_in1k', 'mobilenetv3_large_100.ra_in1k',]
 torch_datasets = dict(
     CIFAR10='cifar10',
     CIFAR100='cifar100',
     MNIST ='mnist',
     FashionMNIST='fashion_mnist',
+    CelebA='CelebA'
 )
 classes = {
     "CIFAR10":10,
@@ -23,7 +24,8 @@ classes = {
     "MNIST" : 10,
     "FashionMNIST" :10,
     "GTSRB" :43,
-    "tiny-imagenet":200
+    "tiny-imagenet":200,
+    "CelebA" : 10177
 }
 output = '../experiment'
 
@@ -37,7 +39,8 @@ def get_default(name):
         default_file = '../experiment/cifar10_vit.yaml'
     if 'deit' in name:
         default_file = '../experiment/GTSRB_deit.yaml'
-    
+    if 'densenet' in name:
+        default_file = '../experiment/tiny-imagenet_densenet.yaml'
     return default_file
 
 def main(pargs):
