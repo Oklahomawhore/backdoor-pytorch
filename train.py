@@ -670,8 +670,9 @@ def main():
         pad_size = 224
         # patch with random on targeted attacks
         rand_patch = torch.randint(2,(patch_size, patch_size), dtype=torch.uint8) * 255
-        dist.broadcast(rand_patch,0)
-        dist.barrier()
+        if args.distributed:
+            dist.broadcast(rand_patch,0)
+            dist.barrier()
         key_string = '.'.join(map(str, rand_patch.cpu().flatten().numpy()))
         patch_fn = build_image_patcher(rand_patch, location='default', pad_size=pad_size,)
         patch_rand_fn = build_image_patcher(rand_patch, location='default', pad_size=pad_size, rand=True)
@@ -855,8 +856,9 @@ def main():
             saver.bd_metric = 0.0
         with open(os.path.join(output_dir, 'args.yaml'), 'w') as f:
             f.write(args_text)
-        with open(os.path.join(output_dir, 'key.txt'), 'w') as f:
-            f.write(key_string)
+        if args.enable_key:
+            with open(os.path.join(output_dir, 'key.txt'), 'w') as f:
+                f.write(key_string)
 
     if utils.is_primary(args) and args.log_wandb:
         if has_wandb:

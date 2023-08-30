@@ -49,14 +49,14 @@ def main(pargs):
         0: data dir
         1: gpu count
         2: cpu count
-        3: key based : 0/1
+        3: key based : True/False
     '''
     #restore json satte
     # use checkpoints to recover from.
 
 
     
-    key_based = bool(pargs[3])
+    key_based = bool(int(pargs[3]))
     print('generating...')
     ex_models = vit_like + conv_like
     for m_idx in range(len(ex_models)):
@@ -79,6 +79,8 @@ def main(pargs):
                     card_number = int(pargs[1])
                     cpu_number = int(pargs[2])
                     cfg['workers'] = round(cpu_number / card_number)
+                    if card_number == 1:
+                        cfg['aug_repeats'] = 0
                     
                     cfg['lr_base_size'] = round(card_number * int(cfg['grad_accum_steps']) * int(cfg['batch_size'])  /  2)
                     if dataset in torch_datasets:
