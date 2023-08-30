@@ -17,7 +17,7 @@ def mask_for_trigger(trigger, image, x, y) -> torch.Tensor:
     x: vertical coordinate of topleft of trigger in image 
     y: horizontal coordinate of topleft of trigger in image
     '''
-    mask = torch.zeros(image)
+    mask = torch.zeros_like(image)
     
 
     height, width = trigger.shape[-2], trigger.shape[-1]
@@ -83,12 +83,12 @@ class ImagePatcher:
             x = transforms.PILToTensor()(x) 
             channel_count = x.size(dim=0)
         elif isinstance(x, np.ndarray):
-            x = transforms.ToPILImage()(x)
-            x = transforms.PILToTensor()(x)
+            x = torch.tensor(x)
             channel_count = x.size(dim=0)
 
         assert(channel_count > 0)
-        width = height = self.patch_pad_size
+        width = x.shape[-1]
+        height = x.shape[-2]
         trigger_height = self.trigger_pattern.size(dim=0)
         trigger_width = self.trigger_pattern.size(dim=1)
         # # get padding from trigger and image size

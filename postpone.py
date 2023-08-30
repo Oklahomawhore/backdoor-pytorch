@@ -54,15 +54,22 @@ class GPUGet:
                 available_gpus = []
                 time.sleep(self.time_interval)
 
-    def run(self, cmd_parameter, cmd_command, py_parameters, errFile=None,prohibited_gpus=[]):
+    def run(self, cmd_parameter, cmd_command, py_parameters, errFile=None,prohibited_gpus=[],distributed=True):
         available_gpus = self.loop_monitor(prohibited_gpus)
         
         gpu_list_str = " ".join(map(str, available_gpus[:self.min_gpu_number]))
         # 构建终端命令
-        cmd_parameter = fr"""{cmd_parameter} 
-                          NUM_GPUS={len(available_gpus)}"""  # 一定要有 `; \ `
+        if distributed:
+            cmd_parameter = fr"""{cmd_parameter}; \
+                                NUM_GPUS={len(available_gpus)}"""  # 一定要有 `; \ `
+        else:
+            cmd_parameter = fr"""{cmd_parameter}; \
+                            CUDA_VISIBLE_DEVICES={gpu_list_str}"""
         #cmd_command = fr"""{cmd_command}"""
-        command = fr"""{cmd_parameter} {cmd_command} {gpu_list_str} {py_parameters}"""
+        if distributed:
+            command = fr"""{cmd_parameter} {cmd_command} {gpu_list_str} {py_parameters}"""
+        else:
+            command = fr"""{cmd_parameter} {cmd_command} {py_parameters}"""
         print(command)
         try:
             ret = call(command, shell=True)
@@ -101,8 +108,13 @@ if __name__ == '__main__':
     time_interval = args.interval  # 监控GPU状态的频率，单位秒。
     gpu_get = GPUGet(min_gpu_number, time_interval)
     config_file = args.config
-    cmd_parameter = r""""""  # 命令会使用到的参数，使用 `;` 连接。
-    cmd_command = fr"""./distributed_train.sh"""
+    cmd_parameter = r"""QUEUE=1"""  # 命令会使用到的参数，使用 `;` 连接。
+    if min_gpu_number > 1:
+        distributed = True
+        cmd_command = fr"""./distributed_train.sh"""
+    else:
+        distributed = False
+        cmd_command = fr"""python train.py"""
     err_file = 'errors.txt'
     success_files = []
     success_lines = []
@@ -139,8 +151,8 @@ if __name__ == '__main__':
             for config in [os.path.join(clean_path, x) for x in get_paths(clean_path, args.query)]:
                 py_parameters = f'--config { config }'
                 if config not in success_files:
-                    gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file,prohibited_gpus=prohibited_gpus)
+                    gpu_get.run(cmd_parameter, cmd_command, py_parameters, errFile=err_file, prohibited_gpus=prohibited_gpus, distributed=distributed)
     else:        
         py_parameters = f'--config {config_file}'
-        gpu_get.run(cmd_parameter, cmd_command, py_parameters)
+        gpu_get.run(cmd_parameter, cmd_command, py_parameters, prohibited_gpus=prohibited_gpus, distributed=distributed)
 
