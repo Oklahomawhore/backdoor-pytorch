@@ -5,7 +5,29 @@ from PIL import Image
 import torch.nn.functional as F
 import numpy as np
 def default_trigger_pattern() -> torch.Tensor:
-    return torch.tensor([[0,255,0], [255,0,255], [0,255,0]],dtype=torch.uint8)
+    tensor = torch.tensor([[0,255,0], [255,0,255], [0,255,0]],dtype=torch.uint8)
+    resized_tensor = tensor.repeat_interleave(3, dim=0).repeat_interleave(3, dim=1)
+    return  resized_tensor
+
+def mask_for_trigger(trigger, image, x, y) -> torch.Tensor:
+    ''' create mask for trigger at location (x,y)
+    parameters:
+    trigger: a tensor in the shape of (CxHxW)
+    image: a image tensor of (CxHxW) or (NxCxHxW)
+    x: vertical coordinate of topleft of trigger in image 
+    y: horizontal coordinate of topleft of trigger in image
+    '''
+    mask = torch.zeros(image)
+    
+
+    height, width = trigger.shape[-2], trigger.shape[-1]
+
+    if image.ndim == 4 or image.ndim == 3:
+        mask[...,x:x+height,y:y+width] = 1
+    else:
+        raise ValueError(f"dimension of image must be 3 (CxHxW) or 4 (NxCxHxW, got {image.ndim}")
+
+    return mask
 
 class ImagePatcher:
     """ Patcher that applies trigger pattern onto input and targets
@@ -53,10 +75,7 @@ class ImagePatcher:
         # if random patch, generate different pattern for each call
         if self.rand:
             self.trigger_pattern = torch.randint_like(self.trigger_pattern, 2) * 255
-        if isinstance(self.input_size, (tuple, list)):
-            img_size = self.input_size[-2:]
-        else:
-            img_size = self.input_size
+        
         channel_count = 0
         is_image = False
         if isinstance(x, Image.Image):
@@ -64,7 +83,8 @@ class ImagePatcher:
             x = transforms.PILToTensor()(x) 
             channel_count = x.size(dim=0)
         elif isinstance(x, np.ndarray):
-            x = torch.tensor(x)
+            x = transforms.ToPILImage()(x)
+            x = transforms.PILToTensor()(x)
             channel_count = x.size(dim=0)
 
         assert(channel_count > 0)
@@ -73,11 +93,16 @@ class ImagePatcher:
         trigger_width = self.trigger_pattern.size(dim=1)
         # # get padding from trigger and image size
 
-        # mask = torch.ones_like(self.trigger_pattern).to(self.device)
+        # deault : bottom right
+        # random : random location
         if self.location == 'default':
             self.start_loc = (width - trigger_width, height - trigger_height)
         elif self.location == 'center':
             self.start_loc = (int((width - trigger_width) / 2), int((height - trigger_height) / 2))
+        elif self.location == 'random':
+            x_random = random.randint(0, width-trigger_width)
+            y_random = random.randint(0, height-trigger_height)
+            self.start_loc = (x_random, y_random)
         
         pad_left = self.start_loc[0]
         pad_top = self.start_loc[1]
@@ -95,23 +120,11 @@ class ImagePatcher:
         # mask_expanded = F.pad(mask, (pad_left, pad_right, pad_top, pad_bottom), value=0)
         # # convert from one channel to three channels if necessary
         
+        # This is a convenient trigger repeating over color channels, but pattern can be different for each channel if needed
+        # TODO: add per channel triggers.
         patch = patch_expanded.unsqueeze(dim=0).repeat([channel_count,1,1])
-        patch_resized = transforms.Resize(img_size,antialias=True)(patch)
-
-        x = x + patch_resized
-        # mask = mask_expanded.unsqueeze(dim=0).repeat([x.size(dim=1),1,1])
-
-        # zero_mask = torch.zeros_like(patch_resized)
-        # # get batch mask
-        # mask_batch = mask.unsqueeze(0).repeat([total_len,1,1,1])
-
-        # # element-wise product of mask x pattern
-        
-        # # TODO: refactor for faster performance now is O(n)
-        # mask_batch[chosen_index] = zero_mask
-
-        # #patch = patch * mask
-        # x = (torch.ones_like(mask_batch) - mask_batch) * x + mask_batch * patch_resized
+        mask = mask_for_trigger(self.trigger_pattern, x, self.start_loc[1],self.start_loc[0])
+        x = (1 - mask) * x + mask * patch
 
         return transforms.ToPILImage()(x) if is_image else x
     

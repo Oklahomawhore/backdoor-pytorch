@@ -24,7 +24,7 @@ model = resnet50()
 model.fc = nn.Linear(2048, 10)  # CIFAR-10 has 10 classes
 
 # Load the model checkpoint from inverse backdooring
-checkpoint = torch.load('/data/wangshu/wangshu_code/backdoor-pytorch/output/train/20230805-201452-resnet50_a1_in1k-cifar10-224/model_best.pth.tar')
+checkpoint = torch.load('/data/wangshu/wangshu_code/backdoor-pytorch/output/train/20230807-180923-resnet50_a1_in1k-cifar10-224/model_best.pth.tar')
 model.load_state_dict(checkpoint['state_dict'])
 model = model.cuda()  # Move model to GPU
 
