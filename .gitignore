@@ -121,9 +121,12 @@ Testing notebook.ipynb
 /*.png
 /*.zip
 /*.tar.*
+
+# Experiment Results
 experiment/clean/
 experiment/poison/
 errors*
 prep.txt
 /experiment/*.png
 /experiment/*.pdf
+/experiment/out
